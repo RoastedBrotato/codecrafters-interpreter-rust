@@ -134,7 +134,7 @@ fn main() {
                                 }
                             }
                             let number_value: f64 = number_literal.parse().unwrap();
-                            println!("NUMBER {} {:.1}", number_literal, number_value);
+                            println!("NUMBER {} {}", number_literal, format!("{:.1}", number_value));
                         }
                         _ => {
                             writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
