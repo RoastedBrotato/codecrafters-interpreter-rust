@@ -23,6 +23,7 @@ fn main() {
             });
 
             let mut has_error = false;
+            let mut line_number = 1;
 
             if !file_contents.is_empty() {
                 let mut file_contents_chars = file_contents.chars().peekable();
@@ -75,6 +76,7 @@ fn main() {
                                 // Consume the second '/' and skip the rest of the line
                                 while let Some(next_char) = file_contents_chars.next() {
                                     if next_char == '\n' {
+                                        line_number += 1;
                                         break;
                                     }
                                 }
@@ -82,9 +84,12 @@ fn main() {
                                 println!("SLASH / null");
                             }
                         }
-                        ' ' | '\r' | '\t' | '\n' => {}, // Ignore whitespace
+                        ' ' | '\r' | '\t' => {}, // Ignore whitespace
+                        '\n' => {
+                            line_number += 1;
+                        }
                         _ => {
-                            writeln!(io::stderr(), "[line 1] Error: Unexpected character: {}", char).unwrap();
+                            writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
                             has_error = true;
                         }
                     }
