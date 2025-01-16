@@ -112,8 +112,8 @@ fn main() {
                             }
                         }
                         '0'..='9' => {
+                            // Scan number and parse
                             let mut number_literal = char.to_string();
-                            // Consume integer part
                             while let Some(&next_char) = file_contents_chars.peek() {
                                 if next_char.is_digit(10) {
                                     number_literal.push(next_char);
@@ -123,7 +123,6 @@ fn main() {
                                 }
                             }
 
-                            // Look for decimal part
                             if let Some(&'.') = file_contents_chars.peek() {
                                 if let Some(next) = file_contents_chars.clone().nth(1) {
                                     if next.is_digit(10) {
@@ -141,12 +140,10 @@ fn main() {
                                 }
                             }
 
+                            // Parse and format output
                             let number_value: f64 = number_literal.parse().unwrap();
-                            if number_literal.contains('.') {
-                                println!("NUMBER {} {}", number_literal, number_value);
-                            } else {
-                                println!("NUMBER {} {}.0", number_literal, number_value);
-                            }
+                            let formatted_value = format!("{:.1}", number_value);
+                            println!("NUMBER {} {}", number_literal, formatted_value);
                         }
                         'a'..='z' | 'A'..='Z' | '_' => {
                             let mut identifier = char.to_string();
