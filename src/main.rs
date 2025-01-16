@@ -82,7 +82,7 @@ fn main() {
                                 println!("SLASH / null");
                             }
                         }
-                        ' ' | '\r' | '\t' => {}, // Ignore whitespace
+                        ' ' | '\r' | '\t' | '\n' => {}, // Ignore whitespace
                         _ => {
                             writeln!(io::stderr(), "[line 1] Error: Unexpected character: {}", char).unwrap();
                             has_error = true;
