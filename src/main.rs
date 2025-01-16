@@ -70,7 +70,18 @@ fn main() {
                                 println!("GREATER > null");
                             }
                         }
-
+                        '/' => {
+                            if file_contents_chars.peek() == Some(&'/') {
+                                // Consume the second '/' and skip the rest of the line
+                                while let Some(next_char) = file_contents_chars.next() {
+                                    if next_char == '\n' {
+                                        break;
+                                    }
+                                }
+                            } else {
+                                println!("SLASH / null");
+                            }
+                        }
                         ' ' | '\r' | '\t' => {}, // Ignore whitespace
                         _ => {
                             writeln!(io::stderr(), "[line 1] Error: Unexpected character: {}", char).unwrap();
