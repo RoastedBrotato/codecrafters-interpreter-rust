@@ -28,8 +28,8 @@ fn main() {
                 let _ = file_contents_chars.for_each(|char| match char {
                     '(' => println!("LEFT_PAREN ( null"),
                     ')' => println!("RIGHT_PAREN ) null"),
-                    '{' => println!("LEFT_BRACE { null"),
-                    '}' => println!("RIGHT_BRACE } null"),
+                    '{{' => println!("LEFT_BRACE { null"),
+                    '}}' => println!("RIGHT_BRACE } null"),
                     _ => {}
                 });
                 println!("EOF  null"); 
