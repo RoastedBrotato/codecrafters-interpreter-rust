@@ -111,6 +111,31 @@ fn main() {
                                 has_error = true;
                             }
                         }
+                        '0'..='9' => {
+                            let mut number_literal = char.to_string();
+                            while let Some(&next_char) = file_contents_chars.peek() {
+                                if next_char.is_digit(10) {
+                                    number_literal.push(next_char);
+                                    file_contents_chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                            if let Some(&'.') = file_contents_chars.peek() {
+                                number_literal.push('.');
+                                file_contents_chars.next();
+                                while let Some(&next_char) = file_contents_chars.peek() {
+                                    if next_char.is_digit(10) {
+                                        number_literal.push(next_char);
+                                        file_contents_chars.next();
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
+                            let number_value: f64 = number_literal.parse().unwrap();
+                            println!("NUMBER {} {}", number_literal, number_value);
+                        }
                         _ => {
                             writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
                             has_error = true;
