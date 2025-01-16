@@ -2,8 +2,28 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
+use std::collections::HashMap;
 
 fn main() {
+    let keywords: HashMap<&str, &str> = [
+        ("and", "AND"),
+        ("class", "CLASS"),
+        ("else", "ELSE"),
+        ("false", "FALSE"),
+        ("for", "FOR"),
+        ("fun", "FUN"),
+        ("if", "IF"),
+        ("nil", "NIL"),
+        ("or", "OR"),
+        ("print", "PRINT"),
+        ("return", "RETURN"),
+        ("super", "SUPER"),
+        ("this", "THIS"),
+        ("true", "TRUE"),
+        ("var", "VAR"),
+        ("while", "WHILE"),
+    ].iter().cloned().collect();
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
         writeln!(io::stderr(), "Usage: {} tokenize <filename>", args[0]).unwrap();
@@ -168,7 +188,11 @@ fn main() {
                                     break;
                                 }
                             }
-                            println!("IDENTIFIER {} null", identifier);
+                            if let Some(keyword_type) = keywords.get(identifier.as_str()) {
+                                println!("{} {} null", keyword_type, identifier);
+                            } else {
+                                println!("IDENTIFIER {} null", identifier);
+                            }
                         }
                         _ => {
                             writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
