@@ -114,7 +114,7 @@ fn main() {
                         '0'..='9' => {
                             let mut number_literal = char.to_string();
                             // Consume integer part
-                            while let Some(next_char) = file_contents_chars.peek() {
+                            while let Some(&next_char) = file_contents_chars.peek() {
                                 if next_char.is_digit(10) {
                                     number_literal.push(next_char);
                                     file_contents_chars.next();
@@ -124,9 +124,8 @@ fn main() {
                             }
 
                             // Look for decimal part
-                            if let Some('.') = file_contents_chars.peek() {
-                                // Only consume decimal if followed by digit
-                                if let Some(next) = file_contents_chars.clone().nth(1) {
+                            if let Some(&'.') = file_contents_chars.peek() {
+                                if let Some(&next) = file_contents_chars.clone().nth(1) {
                                     if next.is_digit(10) {
                                         number_literal.push('.');
                                         file_contents_chars.next();
