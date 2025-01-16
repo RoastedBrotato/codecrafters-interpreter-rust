@@ -90,20 +90,23 @@ fn main() {
                         }
                         '"' => {
                             let mut string_literal = String::new();
+                            let mut unterminated = true;
                             while let Some(next_char) = file_contents_chars.next() {
                                 if next_char == '"' {
                                     println!("STRING \"{}\" {}", string_literal, string_literal);
+                                    unterminated = false;
                                     break;
                                 } else if next_char == '\n' {
                                     line_number += 1;
                                     writeln!(io::stderr(), "[line {}] Error: Unterminated string.", line_number).unwrap();
                                     has_error = true;
+                                    unterminated = false;
                                     break;
                                 } else {
                                     string_literal.push(next_char);
                                 }
                             }
-                            if string_literal.is_empty() || string_literal.chars().last() != Some('"') {
+                            if unterminated {
                                 writeln!(io::stderr(), "[line {}] Error: Unterminated string.", line_number).unwrap();
                                 has_error = true;
                             }
