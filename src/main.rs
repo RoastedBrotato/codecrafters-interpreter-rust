@@ -142,7 +142,11 @@ fn main() {
 
                             // Parse and format output
                             let number_value: f64 = number_literal.parse().unwrap();
-                            println!("NUMBER {} {}", number_literal, number_value);
+                            if number_literal.contains('.') {
+                                println!("NUMBER {} {}", number_literal, number_value);
+                            } else {
+                                println!("NUMBER {} {}.0", number_literal, number_value);
+                            }
                         }
                         'a'..='z' | 'A'..='Z' | '_' => {
                             let mut identifier = char.to_string();
