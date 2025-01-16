@@ -142,11 +142,21 @@ fn main() {
 
                             // Parse and format output
                             let number_value: f64 = number_literal.parse().unwrap();
-                            if number_literal.contains('.') {
-                                println!("NUMBER {} {}", number_literal, number_value);
+                            let formatted_value = if number_literal.contains('.') {
+                                // Check if decimal ends with zeros
+                                let trimmed = number_literal.trim_end_matches('0');
+                                if trimmed.ends_with('.') {
+                                    // It was a whole number like 200.00
+                                    format!("{}.0", number_value)
+                                } else {
+                                    // Regular decimal
+                                    number_value.to_string()
+                                }
                             } else {
-                                println!("NUMBER {} {}.0", number_literal, number_value);
-                            }
+                                // Integer
+                                format!("{}.0", number_value)
+                            };
+                            println!("NUMBER {} {}", number_literal, formatted_value);
                         }
                         'a'..='z' | 'A'..='Z' | '_' => {
                             let mut identifier = char.to_string();
