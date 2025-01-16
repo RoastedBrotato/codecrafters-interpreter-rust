@@ -125,7 +125,7 @@ fn main() {
 
                             // Look for decimal part
                             if let Some(&'.') = file_contents_chars.peek() {
-                                if let Some(&next) = file_contents_chars.clone().nth(1) {
+                                if let Some(next) = file_contents_chars.clone().nth(1) {
                                     if next.is_digit(10) {
                                         number_literal.push('.');
                                         file_contents_chars.next();
