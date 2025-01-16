@@ -152,6 +152,10 @@ fn main() {
                             writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
                             has_error = true;
                         }
+                        _ => {
+                            writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
+                            has_error = true;
+                        }
                     }
                 }
                 println!("EOF  null"); 
