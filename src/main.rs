@@ -88,6 +88,26 @@ fn main() {
                         '\n' => {
                             line_number += 1;
                         }
+                        '"' => {
+                            let mut string_literal = String::new();
+                            while let Some(next_char) = file_contents_chars.next() {
+                                if next_char == '"' {
+                                    println!("STRING \"{}\" {}", string_literal, string_literal);
+                                    break;
+                                } else if next_char == '\n' {
+                                    line_number += 1;
+                                    writeln!(io::stderr(), "[line {}] Error: Unterminated string.", line_number).unwrap();
+                                    has_error = true;
+                                    break;
+                                } else {
+                                    string_literal.push(next_char);
+                                }
+                            }
+                            if string_literal.is_empty() || string_literal.chars().last() != Some('"') {
+                                writeln!(io::stderr(), "[line {}] Error: Unterminated string.", line_number).unwrap();
+                                has_error = true;
+                            }
+                        }
                         _ => {
                             writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
                             has_error = true;
