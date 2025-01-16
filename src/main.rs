@@ -54,6 +54,23 @@ fn main() {
                                 println!("EQUAL = null");
                             }
                         }
+                        '<' => {
+                            if file_contents_chars.peek() == Some(&'=') {
+                                file_contents_chars.next();
+                                println!("LESS_EQUAL <= null");
+                            } else {
+                                println!("LESS < null");
+                            }
+                        }
+                        '>' => {
+                            if file_contents_chars.peek() == Some(&'=') {
+                                file_contents_chars.next();
+                                println!("GREATER_EQUAL >= null");
+                            } else {
+                                println!("GREATER > null");
+                            }
+                        }
+
                         ' ' | '\r' | '\t' => {}, // Ignore whitespace
                         _ => {
                             writeln!(io::stderr(), "[line 1] Error: Unexpected character: {}", char).unwrap();
