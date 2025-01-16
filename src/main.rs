@@ -134,7 +134,7 @@ fn main() {
                                 }
                             }
                             let number_value: f64 = number_literal.parse().unwrap();
-                            println!("NUMBER {} {}", number_literal, format!("{:.1}", number_value));
+                            println!("NUMBER {} {}", number_literal, number_value);
                         }
                         'a'..='z' | 'A'..='Z' | '_' => {
                             let mut identifier = char.to_string();
