@@ -134,7 +134,19 @@ fn main() {
                                 }
                             }
                             let number_value: f64 = number_literal.parse().unwrap();
-                            println!("NUMBER {} {}", number_literal, format!("{:.1}", number_value));
+                            println!("NUMBER {} {}", number_literal, number_value);
+                        }
+                        'a'..='z' | 'A'..='Z' | '_' => {
+                            let mut identifier = char.to_string();
+                            while let Some(&next_char) = file_contents_chars.peek() {
+                                if next_char.is_alphanumeric() || next_char == '_' {
+                                    identifier.push(next_char);
+                                    file_contents_chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                            println!("IDENTIFIER {} null", identifier);
                         }
                         _ => {
                             writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
