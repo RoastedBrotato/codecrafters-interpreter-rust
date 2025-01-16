@@ -38,6 +38,14 @@ fn main() {
                         '-' => println!("MINUS - null"),
                         ';' => println!("SEMICOLON ; null"),
                         '*' => println!("STAR * null"),
+                        '!' => {
+                            if file_contents_chars.peek() == Some(&'=') {
+                                file_contents_chars.next();
+                                println!("BANG_EQUAL != null");
+                            } else {
+                                println!("BANG ! null");
+                            }
+                        }
                         '=' => {
                             if file_contents_chars.peek() == Some(&'=') {
                                 file_contents_chars.next();
