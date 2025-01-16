@@ -30,6 +30,12 @@ fn main() {
                     ')' => println!("RIGHT_PAREN ) null"),
                     '{' => println!("LEFT_BRACE {{ null"),
                     '}' => println!("RIGHT_BRACE }} null"),
+                    ',' => println!("COMMA , null"),
+                    '.' => println!("DOT . null"),
+                    '+' => println!("PLUS + null"),
+                    '-' => println!("MINUS - null"),
+                    ';' => println!("SEMICOLON ; null"),
+                    '*' => println!("STAR * null"),
                     _ => {}
                 });
                 println!("EOF  null"); 
