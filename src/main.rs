@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::process;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -14,7 +15,6 @@ fn main() {
 
     match command.as_str() {
         "tokenize" => {
-            // You can use print statements as follows for debugging, they'll be visible when running tests.
             writeln!(io::stderr(), "Logs from your program will appear here!").unwrap();
 
             let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
@@ -22,7 +22,8 @@ fn main() {
                 String::new()
             });
 
-            // Uncomment this block to pass the first stage
+            let mut has_error = false;
+
             if !file_contents.is_empty() {
                 let file_contents_chars = file_contents.chars();
                 let _ = file_contents_chars.for_each(|char| match char {
@@ -36,11 +37,19 @@ fn main() {
                     '-' => println!("MINUS - null"),
                     ';' => println!("SEMICOLON ; null"),
                     '*' => println!("STAR * null"),
-                    _ => {}
+                    ' ' | '\r' | '\t' => {}, // Ignore whitespace
+                    _ => {
+                        writeln!(io::stderr(), "[line 1] Error: Unexpected character: {}", char).unwrap();
+                        has_error = true;
+                    }
                 });
                 println!("EOF  null"); 
             } else {
-                println!("EOF  null"); // Placeholder, remove this line when implementing the scanner
+                println!("EOF  null");
+            }
+
+            if has_error {
+                process::exit(65);
             }
         }
         _ => {
