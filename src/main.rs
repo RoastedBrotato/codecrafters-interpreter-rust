@@ -420,7 +420,13 @@ fn main() {
 fn print_ast(expr: &Expr) {
     match expr {
         Expr::Literal(value) => match value {
-            LiteralValue::Number(n) => print!("{}", n),
+            LiteralValue::Number(n) => {
+                if n.fract() == 0.0 {
+                    print!("{}.0", n);
+                } else {
+                    print!("{}", n);
+                }
+            },
             LiteralValue::True => print!("true"),
             LiteralValue::False => print!("false"),
             LiteralValue::Nil => print!("nil"),
