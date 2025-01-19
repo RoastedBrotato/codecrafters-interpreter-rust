@@ -115,6 +115,36 @@ fn scan_tokens(source: &str) -> Vec<Token> {
         let c = chars[current];
         
         match c {
+            '0'..='9' => {
+                let mut number = String::from(c);
+                current += 1;
+                
+                while current < chars.len() && chars[current].is_digit(10) {
+                    number.push(chars[current]);
+                    current += 1;
+                }
+                
+                // Check for decimal part
+                if current < chars.len() && chars[current] == '.' && 
+                   current + 1 < chars.len() && chars[current + 1].is_digit(10) {
+                    number.push('.');
+                    current += 1;
+                    
+                    while current < chars.len() && chars[current].is_digit(10) {
+                        number.push(chars[current]);
+                        current += 1;
+                    }
+                }
+                
+                let value: f64 = number.parse().unwrap();
+                tokens.push(Token {
+                    token_type: TokenType::Number(value),
+                    lexeme: number,
+                    literal: None,
+                    line,
+                });
+                continue;
+            }
             'f' => {
                 if current + 4 < chars.len() && 
                    &chars[current..current + 5].iter().collect::<String>() == "false" {
