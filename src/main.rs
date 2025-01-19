@@ -102,39 +102,57 @@ impl Parser {
 
 fn scan_tokens(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    let mut chars = source.chars().peekable();
+    let mut start = 0;
+    let mut current = 0;
     let mut line = 1;
+    let chars: Vec<char> = source.chars().collect();
 
-    while let Some(c) = chars.next() {
+    while current < chars.len() {
+        start = current;
+        let c = chars[current];
+        
         match c {
-            'f' if source[chars.pos()..].starts_with("alse") => {
-                tokens.push(Token {
-                    token_type: TokenType::False,
-                    lexeme: "false".to_string(),
-                    literal: None,
-                    line,
-                });
+            'f' => {
+                if current + 4 < chars.len() && 
+                   &chars[current..current + 5].iter().collect::<String>() == "false" {
+                    tokens.push(Token {
+                        token_type: TokenType::False,
+                        lexeme: "false".to_string(),
+                        literal: None,
+                        line,
+                    });
+                    current += 4;
+                }
             },
-            't' if source[chars.pos()..].starts_with("rue") => {
-                tokens.push(Token {
-                    token_type: TokenType::True,
-                    lexeme: "true".to_string(),
-                    literal: None,
-                    line,
-                });
+            't' => {
+                if current + 3 < chars.len() && 
+                   &chars[current..current + 4].iter().collect::<String>() == "true" {
+                    tokens.push(Token {
+                        token_type: TokenType::True,
+                        lexeme: "true".to_string(),
+                        literal: None,
+                        line,
+                    });
+                    current += 3;
+                }
             },
-            'n' if source[chars.pos()..].starts_with("il") => {
-                tokens.push(Token {
-                    token_type: TokenType::Nil,
-                    lexeme: "nil".to_string(),
-                    literal: None,
-                    line,
-                });
+            'n' => {
+                if current + 2 < chars.len() && 
+                   &chars[current..current + 3].iter().collect::<String>() == "nil" {
+                    tokens.push(Token {
+                        token_type: TokenType::Nil,
+                        lexeme: "nil".to_string(),
+                        literal: None,
+                        line,
+                    });
+                    current += 2;
+                }
             },
             ' ' | '\r' | '\t' => {},
             '\n' => line += 1,
             _ => {}
         }
+        current += 1;
     }
 
     tokens.push(Token {
