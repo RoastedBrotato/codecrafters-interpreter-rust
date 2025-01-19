@@ -4,6 +4,102 @@ use std::io::{self, Write};
 use std::process;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
+enum TokenType {
+    // Single-character tokens
+    LeftParen, RightParen, Plus,
+    // Literals
+    Number(f64),
+    // Keywords
+    True, False, Nil,
+    Eof
+}
+
+#[derive(Debug, Clone)]
+struct Token {
+    token_type: TokenType,
+    lexeme: String,
+    literal: Option<String>,
+    line: usize,
+}
+
+#[derive(Debug)]
+enum Expr {
+    Literal(LiteralValue),
+}
+
+#[derive(Debug)]
+enum LiteralValue {
+    Number(f64),
+    True,
+    False,
+    Nil,
+}
+
+struct Parser {
+    tokens: Vec<Token>,
+    current: usize,
+}
+
+impl Parser {
+    fn new(tokens: Vec<Token>) -> Self {
+        Parser { tokens, current: 0 }
+    }
+
+    fn parse(&mut self) -> Option<Expr> {
+        self.expression()
+    }
+
+    fn expression(&mut self) -> Option<Expr> {
+        self.literal()
+    }
+
+    fn literal(&mut self) -> Option<Expr> {
+        if let Some(token) = self.peek() {
+            match token.token_type {
+                TokenType::True => {
+                    self.advance();
+                    Some(Expr::Literal(LiteralValue::True))
+                }
+                TokenType::False => {
+                    self.advance();
+                    Some(Expr::Literal(LiteralValue::False))
+                }
+                TokenType::Nil => {
+                    self.advance();
+                    Some(Expr::Literal(LiteralValue::Nil))
+                }
+                TokenType::Number(n) => {
+                    self.advance();
+                    Some(Expr::Literal(LiteralValue::Number(n)))
+                }
+                _ => None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn peek(&self) -> Option<&Token> {
+        self.tokens.get(self.current)
+    }
+
+    fn advance(&mut self) -> Option<Token> {
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+        self.previous()
+    }
+
+    fn previous(&self) -> Option<Token> {
+        self.tokens.get(self.current - 1).cloned()
+    }
+
+    fn is_at_end(&self) -> bool {
+        matches!(self.peek()?.token_type, TokenType::Eof)
+    }
+}
+
 fn main() {
     let keywords: HashMap<&str, &str> = [
         ("and", "AND"),
@@ -26,21 +122,28 @@ fn main() {
 
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
-        writeln!(io::stderr(), "Usage: {} tokenize <filename>", args[0]).unwrap();
+        writeln!(io::stderr(), "Usage: {} <command> <filename>", args[0]).unwrap();
         return;
     }
 
     let command = &args[1];
     let filename = &args[2];
 
+    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+        writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
+        String::new()
+    });
+
     match command.as_str() {
+        "parse" => {
+            let tokens = scan_tokens(&file_contents);
+            let mut parser = Parser::new(tokens);
+            if let Some(expr) = parser.parse() {
+                print_ast(&expr);
+            }
+        }
         "tokenize" => {
             writeln!(io::stderr(), "Logs from your program will appear here!").unwrap();
-
-            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-                writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
-                String::new()
-            });
 
             let mut has_error = false;
             let mut line_number = 1;
@@ -214,4 +317,16 @@ fn main() {
             return;
         }
     }
+}
+
+fn print_ast(expr: &Expr) {
+    match expr {
+        Expr::Literal(value) => match value {
+            LiteralValue::True => print!("true"),
+            LiteralValue::False => print!("false"),
+            LiteralValue::Nil => print!("nil"),
+            LiteralValue::Number(n) => print!("{}", n),
+        }
+    }
+    println!();
 }
