@@ -96,7 +96,10 @@ impl Parser {
     }
 
     fn is_at_end(&self) -> bool {
-        matches!(self.peek()?.token_type, TokenType::Eof)
+        match self.peek() {
+            Some(token) => matches!(token.token_type, TokenType::Eof),
+            None => true
+        }
     }
 }
 
