@@ -57,6 +57,10 @@ impl Parser {
     fn literal(&mut self) -> Option<Expr> {
         if let Some(token) = self.peek() {
             match token.token_type {
+                TokenType::Number(n) => {
+                    self.advance();
+                    Some(Expr::Literal(LiteralValue::Number(n)))
+                }
                 TokenType::True => {
                     self.advance();
                     Some(Expr::Literal(LiteralValue::True))
@@ -68,10 +72,6 @@ impl Parser {
                 TokenType::Nil => {
                     self.advance();
                     Some(Expr::Literal(LiteralValue::Nil))
-                }
-                TokenType::Number(n) => {
-                    self.advance();
-                    Some(Expr::Literal(LiteralValue::Number(n)))
                 }
                 _ => None
             }
@@ -390,10 +390,10 @@ fn main() {
 fn print_ast(expr: &Expr) {
     match expr {
         Expr::Literal(value) => match value {
+            LiteralValue::Number(n) => print!("{}", n),
             LiteralValue::True => print!("true"),
             LiteralValue::False => print!("false"),
             LiteralValue::Nil => print!("nil"),
-            LiteralValue::Number(n) => print!("{}", n),
         }
     }
     println!();
