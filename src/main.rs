@@ -100,6 +100,53 @@ impl Parser {
     }
 }
 
+fn scan_tokens(source: &str) -> Vec<Token> {
+    let mut tokens = Vec::new();
+    let mut chars = source.chars().peekable();
+    let mut line = 1;
+
+    while let Some(c) = chars.next() {
+        match c {
+            'f' if source[chars.pos()..].starts_with("alse") => {
+                tokens.push(Token {
+                    token_type: TokenType::False,
+                    lexeme: "false".to_string(),
+                    literal: None,
+                    line,
+                });
+            },
+            't' if source[chars.pos()..].starts_with("rue") => {
+                tokens.push(Token {
+                    token_type: TokenType::True,
+                    lexeme: "true".to_string(),
+                    literal: None,
+                    line,
+                });
+            },
+            'n' if source[chars.pos()..].starts_with("il") => {
+                tokens.push(Token {
+                    token_type: TokenType::Nil,
+                    lexeme: "nil".to_string(),
+                    literal: None,
+                    line,
+                });
+            },
+            ' ' | '\r' | '\t' => {},
+            '\n' => line += 1,
+            _ => {}
+        }
+    }
+
+    tokens.push(Token {
+        token_type: TokenType::Eof,
+        lexeme: String::new(),
+        literal: None,
+        line,
+    });
+
+    tokens
+}
+
 fn main() {
     let keywords: HashMap<&str, &str> = [
         ("and", "AND"),
