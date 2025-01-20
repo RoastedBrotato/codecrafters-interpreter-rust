@@ -41,50 +41,18 @@ const WHILE: &str = "while";
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
-        eprintln!("Usage: {} tokenize <filename>", args[0]);
+        eprintln!("Usage: {} <command> <filename>", args[0]);
         return;
     }
     let command = &args[1];
     let filename = &args[2];
+    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+        eprintln!("Failed to read file {}", filename);
+        String::new()
+    });
+
     match command.as_str() {
-        "tokenize" => {
-            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-                eprintln!("Failed to read file {}", filename);
-                String::new()
-            });
-            let scanner = Scanner::new(file_contents.as_str());
-            let (tokens, had_error) = scanner.scan_tokens();
-            tokens.iter().for_each(|token| println!("{}", token));
-            if had_error {
-                std::process::exit(65);
-            }
-        }
-        "parse" => {
-            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-                eprintln!("Failed to read file {}", filename);
-                String::new()
-            });
-            let scanner = Scanner::new(file_contents.as_str());
-            let (tokens, _) = scanner.scan_tokens();
-            let mut parser = Parser::new(tokens);
-            match parser.parse() {
-                Ok(expr) => println!("{}", expr),
-                Err(error) => {
-                    eprintln!(
-                        "[line {}] Error at '{}': {}",
-                        error.line,
-                        error.token.lexeme(),
-                        error.message
-                    );
-                    std::process::exit(65);
-                }
-            }
-        }
         "evaluate" => {
-            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-                eprintln!("Failed to read file {}", filename);
-                String::new()
-            });
             let scanner = Scanner::new(file_contents.as_str());
             let (tokens, _) = scanner.scan_tokens();
             let mut parser = Parser::new(tokens);
@@ -111,10 +79,6 @@ fn main() {
             }
         }
         "run" => {
-            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-                eprintln!("Failed to read file {}", filename);
-                String::new()
-            });
             let scanner = Scanner::new(file_contents.as_str());
             let (tokens, _) = scanner.scan_tokens();
             let mut parser = Parser::new(tokens);
