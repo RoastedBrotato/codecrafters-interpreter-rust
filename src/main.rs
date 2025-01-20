@@ -631,6 +631,20 @@ struct Interpreter;
 impl Interpreter {
     fn evaluate(&self, expr: &Expr) -> Result<Value, String> {
         match expr {
+            Expr::Unary(operator, expr) => {
+                let right = self.evaluate(expr)?;
+                match operator {
+                    Token::Minus => {
+                        if let Value::Number(n) = right {
+                            Ok(Value::Number(-n))
+                        } else {
+                            Err("Operand must be a number.".to_string())
+                        }
+                    }
+                    Token::Bang => Ok(Value::Boolean(!self.is_truthy(&right))),
+                    _ => Err("Invalid unary operator.".to_string()),
+                }
+            }
             Expr::Grouping(expr) => self.evaluate(expr),
             Expr::Literal(token) => match token {
                 Token::Number(n) => Ok(Value::Number(n.parse().unwrap())),
@@ -641,6 +655,14 @@ impl Interpreter {
                 _ => Err("Invalid literal".to_string()),
             },
             _ => Err("Invalid expression".to_string()),
+        }
+    }
+
+    fn is_truthy(&self, value: &Value) -> bool {
+        match value {
+            Value::Nil => false,
+            Value::Boolean(b) => *b,
+            _ => true,
         }
     }
 }
