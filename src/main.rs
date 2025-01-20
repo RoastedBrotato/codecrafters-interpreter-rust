@@ -447,7 +447,18 @@ impl Parser {
         self.expression()
     }
     fn expression(&mut self) -> Result<Expr, ()> {
-        self.multiplication()
+        self.addition()
+    }
+    fn addition(&mut self) -> Result<Expr, ()> {
+        let mut expr = self.multiplication()?;
+
+        while matches!(self.peek(), Token::Plus | Token::Minus) {
+            let operator = self.advance();
+            let right = self.multiplication()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        Ok(expr)
     }
     fn multiplication(&mut self) -> Result<Expr, ()> {
         let mut expr = self.unary()?;
