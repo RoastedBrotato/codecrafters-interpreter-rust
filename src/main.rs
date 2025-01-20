@@ -286,7 +286,13 @@ impl Token {
         match self {
             Token::String(s) => format!("\"{}\"", s),
             Token::Number(n) => n.clone(),
-            Token::Identifier(name) => name.clone(),
+            Token::Identifier(name) => {
+                if name == "NIL" {
+                    "null".to_string()
+                } else {
+                    name.clone()
+                }
+            }
             _ => "null".to_string(),
         }
     }
