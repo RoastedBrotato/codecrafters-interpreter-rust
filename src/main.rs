@@ -632,15 +632,23 @@ impl Parser {
     }
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         if matches!(self.peek(), Token::Print) {
-            self.advance();
-            let value = self.expression()?;
-            self.consume(Token::Semicolon, "Expect ';' after value.")?;
-            Ok(Stmt::Print(value))
+            self.print_statement()
         } else {
-            let expr = self.expression()?;
-            self.consume(Token::Semicolon, "Expect ';' after expression.")?;
-            Ok(Stmt::Expression(expr))
+            self.expression_statement()
         }
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, ParseError> {
+        self.advance(); // consume 'print'
+        let value = self.expression()?;
+        self.consume(Token::Semicolon, "Expect ';' after value.")?;
+        Ok(Stmt::Print(value))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, ParseError> {
+        let expr = self.expression()?;
+        self.consume(Token::Semicolon, "Expect ';' after expression.")?;
+        Ok(Stmt::Expression(expr))
     }
 }
 #[derive(Debug)]
@@ -761,7 +769,15 @@ impl Interpreter {
     }
     fn interpret(&mut self, statements: Vec<Stmt>) -> Result<(), String> {
         for stmt in statements {
-            self.execute(stmt)?;
+            match stmt {
+                Stmt::Print(expr) => {
+                    let value = self.evaluate(&expr)?;
+                    println!("{}", value);
+                }
+                Stmt::Expression(expr) => {
+                    self.evaluate(&expr)?;
+                }
+            }
         }
         Ok(())
     }
