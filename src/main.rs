@@ -234,7 +234,7 @@ impl Token {
     }
     fn lexeme(&self) -> String {
         match self {
-            Token::String(s) => s.clone(),
+            Token::String(s) => format!("\"{}\"", s),
             Token::Number(n) => {
                 let num: f64 = n.parse().unwrap();
                 if num.fract() == 0.0 {
@@ -284,7 +284,7 @@ impl Token {
     }
     fn literal(&self) -> String {
         match self {
-            Token::String(s) => format!("\"{}\"", s),
+            Token::String(s) => s.clone(),
             Token::Number(n) => n.clone(),
             Token::Identifier(_) => "null".to_string(),
             _ => "null".to_string(),
