@@ -219,8 +219,15 @@ impl Token {
     }
     fn lexeme(&self) -> String {
         match self {
-            Token::String(s) => s.clone(), // Remove quotes
-            Token::Number(n) => n.clone(),
+            Token::String(s) => s.clone(),
+            Token::Number(n) => {
+                let num: f64 = n.parse().unwrap();
+                if num.fract() == 0.0 {
+                    format!("{}.0", num)
+                } else {
+                    n.clone()
+                }
+            }
             Token::Identifier(name) => name.clone(),
             Token::LeftParen => LEFT_PAREN.to_string(),
             Token::RightParen => RIGHT_PAREN.to_string(),
