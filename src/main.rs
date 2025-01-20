@@ -281,16 +281,57 @@ fn main() {
 
     match command.as_str() {
         "parse" => {
-            let tokens = scan_tokens(&file_contents);
-            // Debug print tokens
+            let mut chars = file_contents.chars().peekable();
+            let mut tokens = Vec::new();
+            let mut line = 1;
+            
+            while let Some(c) = chars.next() {
+                match c {
+                    '(' => tokens.push(Token {
+                        token_type: TokenType::LeftParen,
+                        lexeme: "(".to_string(),
+                        literal: None,
+                        line,
+                    }),
+                    '"' => {
+                        let mut string = String::new();
+                        while let Some(&next) = chars.peek() {
+                            if next == '"' {
+                                chars.next();
+                                break;
+                            }
+                            string.push(chars.next().unwrap());
+                        }
+                        tokens.push(Token {
+                            token_type: TokenType::String(string.clone()),
+                            lexeme: format!("\"{}\"", string),
+                            literal: None,
+                            line,
+                        });
+                    },
+                    ')' => tokens.push(Token {
+                        token_type: TokenType::RightParen,
+                        lexeme: ")".to_string(),
+                        literal: None,
+                        line,
+                    }),
+                    ' ' | '\r' | '\t' | '\n' => {},
+                    _ => {}
+                }
+            }
+            
+            tokens.push(Token {
+                token_type: TokenType::Eof,
+                lexeme: String::new(),
+                literal: None,
+                line,
+            });
+
             eprintln!("Tokens: {:?}", tokens);
             
             let mut parser = Parser::new(tokens);
             if let Some(expr) = parser.parse() {
-                // Debug print expression
-                eprintln!("Expression: {:?}", expr);
                 print_ast(&expr);
-                // Ensure output is flushed
                 io::stdout().flush().unwrap();
             } else {
                 eprintln!("Failed to parse expression");
