@@ -413,6 +413,7 @@ impl<'a> Scanner<'a> {
         true
     }
 }
+#[derive(Debug)]
 enum Expr {
     Binary(Box<Expr>, Token, Box<Expr>),
     Grouping(Box<Expr>),
@@ -446,6 +447,14 @@ impl Parser {
         self.expression()
     }
     fn expression(&mut self) -> Result<Expr, ()> {
+        self.unary()
+    }
+    fn unary(&mut self) -> Result<Expr, ()> {
+        if matches!(self.peek(), Token::Bang | Token::Minus) {
+            let operator = self.advance();
+            let right = self.unary()?;
+            return Ok(Expr::Unary(operator, Box::new(right)));
+        }
         self.primary()
     }
     fn primary(&mut self) -> Result<Expr, ()> {
