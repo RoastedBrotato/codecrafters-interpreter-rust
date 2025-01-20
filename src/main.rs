@@ -66,11 +66,16 @@ fn main() {
             });
             let scanner = Scanner::new(file_contents.as_str());
             let (tokens, _) = scanner.scan_tokens();
-            let expr = Parser::new(tokens).parse();
-            if let Ok(expr) = expr {
-                println!("{}", expr);
-            } else {
-                std::process::exit(65);
+            let mut parser = Parser::new(tokens);
+            match parser.parse() {
+                Ok(expr) => println!("{}", expr),
+                Err(error) => {
+                    eprintln!("[line {}] Error at '{}': {}", 
+                        error.line, 
+                        error.token.lexeme(), 
+                        error.message);
+                    std::process::exit(65);
+                }
             }
         }
         _ => {
@@ -439,17 +444,22 @@ struct Parser {
     tokens: Vec<Token>,
     current: usize,
 }
+struct ParseError {
+    line: usize,
+    token: Token,
+    message: String,
+}
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
-    fn parse(&mut self) -> Result<Expr, ()> {
+    fn parse(&mut self) -> Result<Expr, ParseError> {
         self.expression()
     }
-    fn expression(&mut self) -> Result<Expr, ()> {
+    fn expression(&mut self) -> Result<Expr, ParseError> {
         self.addition()
     }
-    fn addition(&mut self) -> Result<Expr, ()> {
+    fn addition(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.multiplication()?;
 
         while matches!(self.peek(), Token::Plus | Token::Minus) {
@@ -460,7 +470,7 @@ impl Parser {
 
         Ok(expr)
     }
-    fn multiplication(&mut self) -> Result<Expr, ()> {
+    fn multiplication(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.comparison()?;
 
         while matches!(self.peek(), Token::Star | Token::Slash) {
@@ -471,7 +481,7 @@ impl Parser {
 
         Ok(expr)
     }
-    fn comparison(&mut self) -> Result<Expr, ()> {
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.unary()?;
 
         while matches!(
@@ -485,7 +495,7 @@ impl Parser {
 
         Ok(expr)
     }
-    fn unary(&mut self) -> Result<Expr, ()> {
+    fn unary(&mut self) -> Result<Expr, ParseError> {
         if matches!(self.peek(), Token::Bang | Token::Minus) {
             let operator = self.advance();
             let right = self.unary()?;
@@ -493,28 +503,24 @@ impl Parser {
         }
         self.primary()
     }
-    fn primary(&mut self) -> Result<Expr, ()> {
-        if self.is_at_end() {
-            todo!()
-        }
-        if matches!(
-            self.peek(),
-            Token::False | Token::True | Token::Nil | Token::Number(_) | Token::String(_)
-        ) {
-            return Ok(Expr::Literal(self.advance()));
-        }
-        if matches!(self.peek(), Token::LeftParen) {
-            self.advance();
-            let expr = self.expression()?;
-            if !matches!(self.peek(), Token::RightParen) {
-                eprintln!("Error: Unmatched parentheses.");
-                return Err(());
+    fn primary(&mut self) -> Result<Expr, ParseError> {
+        match self.peek() {
+            Token::LeftParen => {
+                self.advance();
+                let expr = self.expression()?;
+                match self.peek() {
+                    Token::RightParen => {
+                        self.advance();
+                        Ok(Expr::Grouping(Box::new(expr)))
+                    }
+                    token => Err(self.error(token.clone(), "Expect ')' after expression."))
+                }
             }
-            self.advance();
-            return Ok(Expr::Grouping(Box::new(expr)));
+            Token::Number(_) | Token::String(_) | Token::True | Token::False | Token::Nil => {
+                Ok(Expr::Literal(self.advance()))
+            }
+            token => Err(self.error(token.clone(), "Expect expression."))
         }
-        eprintln!("Error: missing expression.");
-        return Err(());
     }
     fn advance(&mut self) -> Token {
         if !self.is_at_end() {
@@ -530,5 +536,23 @@ impl Parser {
     }
     fn previous(&self) -> Token {
         self.tokens[self.current - 1].clone()
+    }
+    fn error(&self, token: Token, message: &str) -> ParseError {
+        ParseError {
+            line: 1, // TODO: Track actual line numbers
+            token,
+            message: message.to_string(),
+        }
+    }
+    fn synchronize(&mut self) {
+        while !self.is_at_end() {
+            if matches!(self.peek(), 
+                Token::Class | Token::Fun | Token::Var | Token::For |
+                Token::If | Token::While | Token::Print | Token::Return
+            ) {
+                break;
+            }
+            self.advance();
+        }
     }
 }
