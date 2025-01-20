@@ -52,6 +52,26 @@ fn main() {
     });
 
     match command.as_str() {
+        "parse" => {
+            let scanner = Scanner::new(file_contents.as_str());
+            let (tokens, had_error) = scanner.scan_tokens();
+            if (had_error) {
+                std::process::exit(65);
+            }
+            let mut parser = Parser::new(tokens);
+            match parser.parse_expression() {
+                Ok(expr) => println!("{}", expr),
+                Err(error) => {
+                    eprintln!(
+                        "[line {}] Error at '{}': {}",
+                        error.line,
+                        error.token.lexeme(),
+                        error.message
+                    );
+                    std::process::exit(65);
+                }
+            }
+        }
         "evaluate" => {
             let scanner = Scanner::new(file_contents.as_str());
             let (tokens, _) = scanner.scan_tokens();
@@ -103,6 +123,7 @@ fn main() {
         }
         _ => {
             eprintln!("Unknown command: {}", command);
+            std::process::exit(65);
         }
     }
 }
