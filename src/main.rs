@@ -282,9 +282,18 @@ fn main() {
     match command.as_str() {
         "parse" => {
             let tokens = scan_tokens(&file_contents);
+            // Debug print tokens
+            eprintln!("Tokens: {:?}", tokens);
+            
             let mut parser = Parser::new(tokens);
             if let Some(expr) = parser.parse() {
+                // Debug print expression
+                eprintln!("Expression: {:?}", expr);
                 print_ast(&expr);
+                // Ensure output is flushed
+                io::stdout().flush().unwrap();
+            } else {
+                eprintln!("Failed to parse expression");
             }
         }
         "tokenize" => {
@@ -486,4 +495,5 @@ fn print_ast(expr: &Expr) {
         }
     }
     println!();
+    io::stdout().flush().unwrap();
 }
