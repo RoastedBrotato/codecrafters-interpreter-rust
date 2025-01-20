@@ -636,6 +636,10 @@ impl Interpreter {
                 let right = self.evaluate(right)?;
 
                 match (left, right) {
+                    (Value::String(l), Value::String(r)) => match operator {
+                        Token::Plus => Ok(Value::String(l + &r)),
+                        _ => Err("Invalid operator for strings.".to_string()),
+                    },
                     (Value::Number(l), Value::Number(r)) => match operator {
                         Token::Plus => Ok(Value::Number(l + r)),
                         Token::Minus => Ok(Value::Number(l - r)),
@@ -649,7 +653,7 @@ impl Interpreter {
                         }
                         _ => Err("Invalid binary operator.".to_string()),
                     },
-                    _ => Err("Operands must be numbers.".to_string()),
+                    _ => Err("Operands must be two numbers or two strings.".to_string()),
                 }
             }
             Expr::Unary(operator, expr) => {
