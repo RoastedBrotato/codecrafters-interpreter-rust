@@ -58,14 +58,14 @@ impl Parser {
 
     fn literal(&mut self) -> Option<Expr> {
         if let Some(token) = self.peek() {
-            match token.token_type {
+            match &token.token_type {
                 TokenType::Number(n) => {
                     self.advance();
-                    Some(Expr::Literal(LiteralValue::Number(n)))
+                    Some(Expr::Literal(LiteralValue::Number(*n)))
                 }
                 TokenType::String(s) => {
                     self.advance();
-                    Some(Expr::Literal(LiteralValue::String(s)))
+                    Some(Expr::Literal(LiteralValue::String(s.clone())))
                 }
                 TokenType::True => {
                     self.advance();
