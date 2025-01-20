@@ -500,7 +500,14 @@ impl Display for Expr {
                     if num.fract() == 0.0 {
                         write!(f, "{}.0", num)
                     } else {
-                        write!(f, "{}", n)
+                        write!(
+                            f,
+                            "{}",
+                            format!("{}", num)
+                                .trim_end_matches('0')
+                                .trim_end_matches('.')
+                                .to_string()
+                        )
                     }
                 }
                 _ => write!(f, "{}", token.lexeme()),
