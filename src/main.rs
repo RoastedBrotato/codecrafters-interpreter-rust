@@ -637,6 +637,8 @@ impl Interpreter {
 
                 match (left, right) {
                     (Value::Number(l), Value::Number(r)) => match operator {
+                        Token::Plus => Ok(Value::Number(l + r)),
+                        Token::Minus => Ok(Value::Number(l - r)),
                         Token::Star => Ok(Value::Number(l * r)),
                         Token::Slash => {
                             if r == 0.0 {
