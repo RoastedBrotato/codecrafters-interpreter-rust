@@ -52,6 +52,16 @@ fn main() {
     });
 
     match command.as_str() {
+        "tokenize" => {
+            let scanner = Scanner::new(file_contents.as_str());
+            let (tokens, had_error) = scanner.scan_tokens();
+            if had_error {
+                std::process::exit(65);
+            }
+            for token in tokens {
+                println!("{} {}", token.token_type(), token.lexeme());
+            }
+        }
         "parse" => {
             let scanner = Scanner::new(file_contents.as_str());
             let (tokens, had_error) = scanner.scan_tokens();
