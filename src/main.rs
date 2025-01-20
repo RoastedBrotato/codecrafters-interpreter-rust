@@ -631,6 +631,7 @@ struct Interpreter;
 impl Interpreter {
     fn evaluate(&self, expr: &Expr) -> Result<Value, String> {
         match expr {
+            Expr::Grouping(expr) => self.evaluate(expr),
             Expr::Literal(token) => match token {
                 Token::Number(n) => Ok(Value::Number(n.parse().unwrap())),
                 Token::String(s) => Ok(Value::String(s.clone())),
