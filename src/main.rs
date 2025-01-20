@@ -476,7 +476,7 @@ impl Parser {
 
         while matches!(
             self.peek(),
-            Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual
+            Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual | Token::EqualEqual | Token::BangEqual
         ) {
             let operator = self.advance();
             let right = self.unary()?;
