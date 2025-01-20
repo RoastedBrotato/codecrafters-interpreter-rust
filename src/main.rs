@@ -234,7 +234,7 @@ impl Token {
     }
     fn lexeme(&self) -> String {
         match self {
-            Token::String(s) => format!("\"{}\"", s),
+            Token::String(s) => s.clone(), // Remove quotes for display
             Token::Number(n) => {
                 let num: f64 = n.parse().unwrap();
                 if num.fract() == 0.0 {
