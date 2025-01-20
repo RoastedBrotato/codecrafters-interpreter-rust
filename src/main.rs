@@ -603,23 +603,25 @@ impl Parser {
 
 #[derive(Debug, Clone)]
 enum Value {
-    Nil,
-    Boolean(bool),
     Number(f64),
+    String(String),
+    Boolean(bool),
+    Nil,
 }
 
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Value::Nil => write!(f, "nil"),
-            Value::Boolean(b) => write!(f, "{}", b),
             Value::Number(n) => {
                 if n.fract() == 0.0 {
-                    write!(f, "{}.0", n)
+                    write!(f, "{}", n.trunc())
                 } else {
                     write!(f, "{}", n)
                 }
             }
+            Value::String(s) => write!(f, "{}", s),
+            Value::Boolean(b) => write!(f, "{}", b),
+            Value::Nil => write!(f, "nil"),
         }
     }
 }
@@ -630,10 +632,11 @@ impl Interpreter {
     fn evaluate(&self, expr: &Expr) -> Result<Value, String> {
         match expr {
             Expr::Literal(token) => match token {
+                Token::Number(n) => Ok(Value::Number(n.parse().unwrap())),
+                Token::String(s) => Ok(Value::String(s.clone())),
                 Token::True => Ok(Value::Boolean(true)),
                 Token::False => Ok(Value::Boolean(false)),
                 Token::Nil => Ok(Value::Nil),
-                Token::Number(n) => Ok(Value::Number(n.parse().unwrap())),
                 _ => Err("Invalid literal".to_string()),
             },
             _ => Err("Invalid expression".to_string()),
