@@ -490,12 +490,9 @@ impl Display for Expr {
             Expr::Binary(left, operator, right) => {
                 write!(f, "({} {} {})", operator.lexeme(), left, right)
             }
-            Expr::Grouping(expr) => write!(f, "(group {expr})"),
-            Expr::Literal(t @ (Token::Number(_) | Token::String(_))) => {
-                write!(f, "{}", t.literal())
-            }
+            Expr::Grouping(expr) => write!(f, "(group {})", expr),
             Expr::Literal(value) => write!(f, "{}", value.lexeme()),
-            Expr::Unary(operator, expr) => write!(f, "({} {expr})", operator.lexeme()),
+            Expr::Unary(operator, right) => write!(f, "({} {})", operator.lexeme(), right),
         }
     }
 }
@@ -666,6 +663,14 @@ impl Parser {
 enum Stmt {
     Print(Expr),
     Expression(Expr),
+}
+impl Display for Stmt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Stmt::Print(expr) => write!(f, "(print {})", expr),
+            Stmt::Expression(expr) => write!(f, "{}", expr),
+        }
+    }
 }
 #[derive(Debug, Clone)]
 enum Value {
