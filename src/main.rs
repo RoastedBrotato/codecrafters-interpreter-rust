@@ -424,7 +424,7 @@ impl Display for Expr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expr::Binary(left, operator, right) => {
-                write!(f, "({} {left} {right})", operator.lexeme())
+                write!(f, "({} {} {})", operator.lexeme(), left, right)
             }
             Expr::Grouping(expr) => write!(f, "(group {expr})"),
             Expr::Literal(t @ (Token::Number(_) | Token::String(_))) => {
@@ -447,7 +447,18 @@ impl Parser {
         self.expression()
     }
     fn expression(&mut self) -> Result<Expr, ()> {
-        self.unary()
+        self.multiplication()
+    }
+    fn multiplication(&mut self) -> Result<Expr, ()> {
+        let mut expr = self.unary()?;
+
+        while matches!(self.peek(), Token::Star | Token::Slash) {
+            let operator = self.advance();
+            let right = self.unary()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        Ok(expr)
     }
     fn unary(&mut self) -> Result<Expr, ()> {
         if matches!(self.peek(), Token::Bang | Token::Minus) {
