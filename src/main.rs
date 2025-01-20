@@ -1,466 +1,489 @@
 use std::env;
+use std::fmt::Display;
 use std::fs;
-use std::io::{self, Write};
-use std::process;
-use std::collections::HashMap;
-
-#[derive(Debug, Clone)]
-enum TokenType {
-    // Single-character tokens
-    LeftParen, RightParen, Plus,
-    // Literals
-    Number(f64),
+use std::iter::Peekable;
+use std::str::Chars;
+const LEFT_PAREN: char = '(';
+const RIGHT_PAREN: char = ')';
+const LEFT_BRACE: char = '{';
+const RIGHT_BRACE: char = '}';
+const COMMA: char = ',';
+const DOT: char = '.';
+const MINUS: char = '-';
+const PLUS: char = '+';
+const SEMICOLON: char = ';';
+const SLASH: char = '/';
+const STAR: char = '*';
+const BANG: char = '!';
+const BANG_EQUAL: &str = "!=";
+const EQUAL: char = '=';
+const EQUAL_EQUAL: &str = "==";
+const GREATER: char = '>';
+const GREATER_EQUAL: &str = ">=";
+const LESS: char = '<';
+const LESS_EQUAL: &str = "<=";
+const AND: &str = "and";
+const CLASS: &str = "class";
+const ELSE: &str = "else";
+const FALSE: &str = "false";
+const FUN: &str = "fun";
+const FOR: &str = "for";
+const IF: &str = "if";
+const NIL: &str = "nil";
+const OR: &str = "or";
+const PRINT: &str = "print";
+const RETURN: &str = "return";
+const SUPER: &str = "super";
+const THIS: &str = "this";
+const TRUE: &str = "true";
+const VAR: &str = "var";
+const WHILE: &str = "while";
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 3 {
+        eprintln!("Usage: {} tokenize <filename>", args[0]);
+        return;
+    }
+    let command = &args[1];
+    let filename = &args[2];
+    match command.as_str() {
+        "tokenize" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                eprintln!("Failed to read file {}", filename);
+                String::new()
+            });
+            let scanner = Scanner::new(file_contents.as_str());
+            let (tokens, had_error) = scanner.scan_tokens();
+            tokens.iter().for_each(|token| println!("{}", token));
+            if had_error {
+                std::process::exit(65);
+            }
+        }
+        "parse" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                eprintln!("Failed to read file {}", filename);
+                String::new()
+            });
+            let scanner = Scanner::new(file_contents.as_str());
+            let (tokens, _) = scanner.scan_tokens();
+            let expr = Parser::new(tokens).parse();
+            if let Ok(expr) = expr {
+                println!("{}", expr);
+            } else {
+                std::process::exit(65);
+            }
+        }
+        _ => {
+            eprintln!("Unknown command: {}", command);
+        }
+    }
+}
+#[derive(Debug, Eq, PartialEq, Clone)]
+enum Token {
+    // Single-character tokens.
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Slash,
+    Star,
+    // One or two character tokens.
+    Bang,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    // Literals.
+    Identifier(String),
     String(String),
-    // Keywords
-    True, False, Nil,
-    Eof
-}
-
-#[derive(Debug, Clone)]
-struct Token {
-    token_type: TokenType,
-    lexeme: String,
-    literal: Option<String>,
-    line: usize,
-}
-
-#[derive(Debug)]
-enum Expr {
-    Literal(LiteralValue),
-    Grouping(Box<Expr>),
-}
-
-#[derive(Debug)]
-enum LiteralValue {
-    Number(f64),
-    String(String),
-    True,
+    Number(String),
+    // Keywords.
+    And,
+    Class,
+    Else,
     False,
+    Fun,
+    For,
+    If,
     Nil,
+    Or,
+    Print,
+    Return,
+    Super,
+    This,
+    True,
+    Var,
+    While,
+    Eof,
 }
-
+impl Token {
+    fn token_type(&self) -> String {
+        match self {
+            Token::LeftParen => "LEFT_PAREN".to_string(),
+            Token::RightParen => "RIGHT_PAREN".to_string(),
+            Token::LeftBrace => "LEFT_BRACE".to_string(),
+            Token::RightBrace => "RIGHT_BRACE".to_string(),
+            Token::Comma => "COMMA".to_string(),
+            Token::Dot => "DOT".to_string(),
+            Token::Minus => "MINUS".to_string(),
+            Token::Plus => "PLUS".to_string(),
+            Token::Semicolon => "SEMICOLON".to_string(),
+            Token::Slash => "SLASH".to_string(),
+            Token::Star => "STAR".to_string(),
+            Token::Bang => "BANG".to_string(),
+            Token::BangEqual => "BANG_EQUAL".to_string(),
+            Token::Equal => "EQUAL".to_string(),
+            Token::EqualEqual => "EQUAL_EQUAL".to_string(),
+            Token::Greater => "GREATER".to_string(),
+            Token::GreaterEqual => "GREATER_EQUAL".to_string(),
+            Token::Less => "LESS".to_string(),
+            Token::LessEqual => "LESS_EQUAL".to_string(),
+            Token::Identifier(_) => "IDENTIFIER".to_string(),
+            Token::String(_) => "STRING".to_string(),
+            Token::Number(_) => "NUMBER".to_string(),
+            Token::And => "AND".to_string(),
+            Token::Class => "CLASS".to_string(),
+            Token::Else => "ELSE".to_string(),
+            Token::False => "FALSE".to_string(),
+            Token::Fun => "FUN".to_string(),
+            Token::For => "FOR".to_string(),
+            Token::If => "IF".to_string(),
+            Token::Nil => "NIL".to_string(),
+            Token::Or => "OR".to_string(),
+            Token::Print => "PRINT".to_string(),
+            Token::Return => "RETURN".to_string(),
+            Token::Super => "SUPER".to_string(),
+            Token::This => "THIS".to_string(),
+            Token::True => "TRUE".to_string(),
+            Token::Var => "VAR".to_string(),
+            Token::While => "WHILE".to_string(),
+            Token::Eof => "EOF".to_string(),
+        }
+    }
+    fn lexeme(&self) -> String {
+        match self {
+            Token::LeftParen => LEFT_PAREN.to_string(),
+            Token::RightParen => RIGHT_PAREN.to_string(),
+            Token::LeftBrace => LEFT_BRACE.to_string(),
+            Token::RightBrace => RIGHT_BRACE.to_string(),
+            Token::Comma => COMMA.to_string(),
+            Token::Dot => DOT.to_string(),
+            Token::Minus => MINUS.to_string(),
+            Token::Plus => PLUS.to_string(),
+            Token::Semicolon => SEMICOLON.to_string(),
+            Token::Slash => SLASH.to_string(),
+            Token::Star => STAR.to_string(),
+            Token::Bang => BANG.to_string(),
+            Token::BangEqual => BANG_EQUAL.to_string(),
+            Token::Equal => EQUAL.to_string(),
+            Token::EqualEqual => EQUAL_EQUAL.to_string(),
+            Token::Greater => GREATER.to_string(),
+            Token::GreaterEqual => GREATER_EQUAL.to_string(),
+            Token::Less => LESS.to_string(),
+            Token::LessEqual => LESS_EQUAL.to_string(),
+            Token::Identifier(identifier) => identifier.to_string(),
+            Token::String(string) => format!("\"{}\"", string),
+            Token::Number(number) => number.to_string(),
+            Token::And => AND.to_string(),
+            Token::Class => CLASS.to_string(),
+            Token::Else => ELSE.to_string(),
+            Token::False => FALSE.to_string(),
+            Token::Fun => FUN.to_string(),
+            Token::For => FOR.to_string(),
+            Token::If => IF.to_string(),
+            Token::Nil => NIL.to_string(),
+            Token::Or => OR.to_string(),
+            Token::Print => PRINT.to_string(),
+            Token::Return => RETURN.to_string(),
+            Token::Super => SUPER.to_string(),
+            Token::This => THIS.to_string(),
+            Token::True => TRUE.to_string(),
+            Token::Var => VAR.to_string(),
+            Token::While => WHILE.to_string(),
+            Token::Eof => "".to_string(),
+        }
+    }
+    fn literal(&self) -> String {
+        match self {
+            Token::String(string) => string.to_string(),
+            Token::Number(number) => format!("{:?}", number.parse::<f64>().unwrap()),
+            _ => "null".to_string(),
+        }
+    }
+}
+impl Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            self.token_type(),
+            self.lexeme(),
+            self.literal()
+        )
+    }
+}
+struct Scanner<'a> {
+    line: usize,
+    current: Peekable<Chars<'a>>,
+    tokens: Vec<Token>,
+    had_error: bool,
+}
+impl<'a> Scanner<'a> {
+    fn new(source: &'a str) -> Self {
+        Scanner {
+            line: 1,
+            current: source.chars().peekable(),
+            tokens: Vec::new(),
+            had_error: false,
+        }
+    }
+    fn scan_tokens(mut self) -> (Vec<Token>, bool) {
+        self.scan_token();
+        self.tokens.push(Token::Eof);
+        (self.tokens, self.had_error)
+    }
+    fn scan_token(&mut self) {
+        while let Some(c) = self.advance() {
+            let token: Option<Token> = match c {
+                LEFT_PAREN => Some(Token::LeftParen),
+                RIGHT_PAREN => Some(Token::RightParen),
+                LEFT_BRACE => Some(Token::LeftBrace),
+                RIGHT_BRACE => Some(Token::RightBrace),
+                STAR => Some(Token::Star),
+                DOT => Some(Token::Dot),
+                COMMA => Some(Token::Comma),
+                PLUS => Some(Token::Plus),
+                MINUS => Some(Token::Minus),
+                SEMICOLON => Some(Token::Semicolon),
+                EQUAL => {
+                    if self.next_match(EQUAL) {
+                        Some(Token::EqualEqual)
+                    } else {
+                        Some(Token::Equal)
+                    }
+                }
+                BANG => {
+                    if self.next_match(EQUAL) {
+                        Some(Token::BangEqual)
+                    } else {
+                        Some(Token::Bang)
+                    }
+                }
+                LESS => {
+                    if self.next_match(EQUAL) {
+                        Some(Token::LessEqual)
+                    } else {
+                        Some(Token::Less)
+                    }
+                }
+                GREATER => {
+                    if self.next_match(EQUAL) {
+                        Some(Token::GreaterEqual)
+                    } else {
+                        Some(Token::Greater)
+                    }
+                }
+                SLASH => {
+                    if self.next_match(SLASH) {
+                        while let Some(c) = self.current.peek() {
+                            if *c != '\n' {
+                                self.advance();
+                            } else {
+                                break;
+                            }
+                        }
+                        None
+                    } else {
+                        Some(Token::Slash)
+                    }
+                }
+                '"' => {
+                    let mut value = String::new();
+                    loop {
+                        match self.advance() {
+                            Some('"') => break Some(Token::String(value)),
+                            Some(c) => {
+                                if c == '\n' {
+                                    self.line += 1;
+                                }
+                                value.push(c);
+                            }
+                            None => {
+                                self.report_error("Unterminated string.");
+                                break None;
+                            }
+                        }
+                    }
+                }
+                _ if c.is_numeric() => {
+                    let mut value = String::new();
+                    value.push(c);
+                    while let Some(c) = self.current.peek() {
+                        if c.is_numeric() {
+                            value.push(*c);
+                            self.advance();
+                        } else {
+                            break;
+                        }
+                    }
+                    let mut advanced_iterator = self.current.clone();
+                    advanced_iterator.next();
+                    if let Some(&DOT) = self.current.peek() {
+                        if advanced_iterator.peek().is_some_and(|c| c.is_numeric()) {
+                            value.push(DOT);
+                            self.advance();
+                            while let Some(c) = self.current.peek() {
+                                if c.is_numeric() {
+                                    value.push(*c);
+                                    self.advance();
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Some(Token::Number(value))
+                }
+                _ if c.is_alphabetic() || c == '_' => {
+                    let mut value = String::new();
+                    value.push(c);
+                    while let Some(c) = self.current.peek() {
+                        if c.is_alphanumeric() || *c == '_' {
+                            value.push(*c);
+                            self.advance();
+                        } else {
+                            break;
+                        }
+                    }
+                    Some(match value.as_str() {
+                        AND => Token::And,
+                        CLASS => Token::Class,
+                        ELSE => Token::Else,
+                        FALSE => Token::False,
+                        FOR => Token::For,
+                        FUN => Token::Fun,
+                        IF => Token::If,
+                        NIL => Token::Nil,
+                        OR => Token::Or,
+                        PRINT => Token::Print,
+                        RETURN => Token::Return,
+                        SUPER => Token::Super,
+                        THIS => Token::This,
+                        TRUE => Token::True,
+                        VAR => Token::Var,
+                        WHILE => Token::While,
+                        _ => Token::Identifier(value),
+                    })
+                }
+                '\n' => {
+                    self.line += 1;
+                    None
+                }
+                ' ' | '\t' => None,
+                _ => {
+                    self.report_error(format!("Unexpected character: {c}").as_str());
+                    None
+                }
+            };
+            if let Some(token) = token {
+                self.tokens.push(token);
+            }
+        }
+    }
+    fn report_error(&mut self, error: &str) {
+        self.had_error = true;
+        eprintln!("[line {}] Error: {error}", self.line);
+    }
+    fn advance(&mut self) -> Option<char> {
+        self.current.next()
+    }
+    fn next_match(&mut self, expected: char) -> bool {
+        if self.current.peek() != Some(&expected) {
+            return false;
+        }
+        self.current.next();
+        true
+    }
+}
+enum Expr {
+    Binary(Box<Expr>, Token, Box<Expr>),
+    Grouping(Box<Expr>),
+    Literal(Token),
+    Unary(Token, Box<Expr>),
+}
+impl Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Binary(left, operator, right) => {
+                write!(f, "({} {left} {right})", operator.lexeme())
+            }
+            Expr::Grouping(expr) => write!(f, "(group {expr})"),
+            Expr::Literal(t @ (Token::Number(_) | Token::String(_))) => {
+                write!(f, "{}", t.literal())
+            }
+            Expr::Literal(value) => write!(f, "{}", value.lexeme()),
+            Expr::Unary(operator, expr) => write!(f, "({} {expr})", operator.lexeme()),
+        }
+    }
+}
 struct Parser {
     tokens: Vec<Token>,
     current: usize,
 }
-
 impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
-
-    fn parse(&mut self) -> Option<Expr> {
+    fn parse(&mut self) -> Result<Expr, ()> {
         self.expression()
     }
-
-    fn expression(&mut self) -> Option<Expr> {
+    fn expression(&mut self) -> Result<Expr, ()> {
         self.primary()
     }
-
-    fn primary(&mut self) -> Option<Expr> {
-        let token = self.peek()?.clone();
-        match token.token_type {
-            TokenType::LeftParen => {
-                self.advance();
-                let expr = self.expression()?;
-                if let Some(token) = self.peek() {
-                    if matches!(token.token_type, TokenType::RightParen) {
-                        self.advance();
-                        return Some(Expr::Grouping(Box::new(expr)));
-                    }
-                }
-                None
-            }
-            TokenType::Number(n) => {
-                self.advance();
-                Some(Expr::Literal(LiteralValue::Number(n)))
-            }
-            TokenType::String(s) => {
-                self.advance();
-                Some(Expr::Literal(LiteralValue::String(s)))
-            }
-            TokenType::True => {
-                self.advance();
-                Some(Expr::Literal(LiteralValue::True))
-            }
-            TokenType::False => {
-                self.advance();
-                Some(Expr::Literal(LiteralValue::False))
-            }
-            TokenType::Nil => {
-                self.advance();
-                Some(Expr::Literal(LiteralValue::Nil))
-            }
-            _ => None
+    fn primary(&mut self) -> Result<Expr, ()> {
+        if self.is_at_end() {
+            todo!()
         }
+        if matches!(
+            self.peek(),
+            Token::False | Token::True | Token::Nil | Token::Number(_) | Token::String(_)
+        ) {
+            return Ok(Expr::Literal(self.advance()));
+        }
+        if matches!(self.peek(), Token::LeftParen) {
+            self.advance();
+            let expr = self.expression()?;
+            if !matches!(self.peek(), Token::RightParen) {
+                eprintln!("Error: Unmatched parentheses.");
+                return Err(());
+            }
+            self.advance();
+            return Ok(Expr::Grouping(Box::new(expr)));
+        }
+        eprintln!("Error: missing expression.");
+        return Err(());
     }
-
-    fn peek(&self) -> Option<&Token> {
-        self.tokens.get(self.current)
-    }
-
-    fn advance(&mut self) -> Option<Token> {
+    fn advance(&mut self) -> Token {
         if !self.is_at_end() {
             self.current += 1;
         }
         self.previous()
     }
-
-    fn previous(&self) -> Option<Token> {
-        self.tokens.get(self.current - 1).cloned()
-    }
-
     fn is_at_end(&self) -> bool {
-        match self.peek() {
-            Some(token) => matches!(token.token_type, TokenType::Eof),
-            None => true
-        }
+        self.peek() == &Token::Eof
     }
-}
-
-fn scan_tokens(source: &str) -> Vec<Token> {
-    let mut tokens = Vec::new();
-    let mut current = 0;
-    let mut line = 1;
-    let chars: Vec<char> = source.chars().collect();
-
-    while current < chars.len() {
-        let c = chars[current];
-        match c {
-            '(' => tokens.push(Token {
-                token_type: TokenType::LeftParen,
-                lexeme: "(".to_string(),
-                literal: None,
-                line,
-            }),
-            ')' => tokens.push(Token {
-                token_type: TokenType::RightParen,
-                lexeme: ")".to_string(),
-                literal: None,
-                line,
-            }),
-            't' => {
-                if current + 3 < chars.len() && 
-                   &chars[current..current + 4].iter().collect::<String>() == "true" {
-                    tokens.push(Token {
-                        token_type: TokenType::True,
-                        lexeme: "true".to_string(),
-                        literal: None,
-                        line,
-                    });
-                    current += 3;
-                }
-            },
-            ' ' | '\r' | '\t' | '\n' => {},
-            _ => {}
-        }
-        current += 1;
+    fn peek(&self) -> &Token {
+        &self.tokens[self.current]
     }
-
-    tokens.push(Token {
-        token_type: TokenType::Eof,
-        lexeme: String::new(),
-        literal: None,
-        line,
-    });
-
-    tokens
-}
-
-fn main() {
-    let keywords: HashMap<&str, &str> = [
-        ("and", "AND"),
-        ("class", "CLASS"),
-        ("else", "ELSE"),
-        ("false", "FALSE"),
-        ("for", "FOR"),
-        ("fun", "FUN"),
-        ("if", "IF"),
-        ("nil", "NIL"),
-        ("or", "OR"),
-        ("print", "PRINT"),
-        ("return", "RETURN"),
-        ("super", "SUPER"),
-        ("this", "THIS"),
-        ("true", "TRUE"),
-        ("var", "VAR"),
-        ("while", "WHILE"),
-    ].iter().cloned().collect();
-
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 3 {
-        writeln!(io::stderr(), "Usage: {} <command> <filename>", args[0]).unwrap();
-        return;
+    fn previous(&self) -> Token {
+        self.tokens[self.current - 1].clone()
     }
-
-    let command = &args[1];
-    let filename = &args[2];
-
-    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-        writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
-        String::new()
-    });
-
-    match command.as_str() {
-        "parse" => {
-            let mut chars = file_contents.chars().peekable();
-            let mut tokens = Vec::new();
-            let mut line = 1;
-            
-            while let Some(c) = chars.next() {
-                match c {
-                    '(' => tokens.push(Token {
-                        token_type: TokenType::LeftParen,
-                        lexeme: "(".to_string(),
-                        literal: None,
-                        line,
-                    }),
-                    '"' => {
-                        let mut string = String::new();
-                        while let Some(&next) = chars.peek() {
-                            if next == '"' {
-                                chars.next();
-                                break;
-                            }
-                            string.push(chars.next().unwrap());
-                        }
-                        tokens.push(Token {
-                            token_type: TokenType::String(string.clone()),
-                            lexeme: format!("\"{}\"", string),
-                            literal: None,
-                            line,
-                        });
-                    },
-                    ')' => tokens.push(Token {
-                        token_type: TokenType::RightParen,
-                        lexeme: ")".to_string(),
-                        literal: None,
-                        line,
-                    }),
-                    ' ' | '\r' | '\t' | '\n' => {},
-                    _ => {}
-                }
-            }
-            
-            tokens.push(Token {
-                token_type: TokenType::Eof,
-                lexeme: String::new(),
-                literal: None,
-                line,
-            });
-
-            eprintln!("Tokens: {:?}", tokens);
-            
-            let mut parser = Parser::new(tokens);
-            if let Some(expr) = parser.parse() {
-                print_ast(&expr);
-                io::stdout().flush().unwrap();
-            } else {
-                eprintln!("Failed to parse expression");
-            }
-        }
-        "tokenize" => {
-            writeln!(io::stderr(), "Logs from your program will appear here!").unwrap();
-
-            let mut has_error = false;
-            let mut line_number = 1;
-
-            if !file_contents.is_empty() {
-                let mut file_contents_chars = file_contents.chars().peekable();
-                while let Some(char) = file_contents_chars.next() {
-                    match char {
-                        '(' => println!("LEFT_PAREN ( null"),
-                        ')' => println!("RIGHT_PAREN ) null"),
-                        '{' => println!("LEFT_BRACE {{ null"),
-                        '}' => println!("RIGHT_BRACE }} null"),
-                        ',' => println!("COMMA , null"),
-                        '.' => println!("DOT . null"),
-                        '+' => println!("PLUS + null"),
-                        '-' => println!("MINUS - null"),
-                        ';' => println!("SEMICOLON ; null"),
-                        '*' => println!("STAR * null"),
-                        '!' => {
-                            if file_contents_chars.peek() == Some(&'=') {
-                                file_contents_chars.next();
-                                println!("BANG_EQUAL != null");
-                            } else {
-                                println!("BANG ! null");
-                            }
-                        }
-                        '=' => {
-                            if file_contents_chars.peek() == Some(&'=') {
-                                file_contents_chars.next();
-                                println!("EQUAL_EQUAL == null");
-                            } else {
-                                println!("EQUAL = null");
-                            }
-                        }
-                        '<' => {
-                            if file_contents_chars.peek() == Some(&'=') {
-                                file_contents_chars.next();
-                                println!("LESS_EQUAL <= null");
-                            } else {
-                                println!("LESS < null");
-                            }
-                        }
-                        '>' => {
-                            if file_contents_chars.peek() == Some(&'=') {
-                                file_contents_chars.next();
-                                println!("GREATER_EQUAL >= null");
-                            } else {
-                                println!("GREATER > null");
-                            }
-                        }
-                        '/' => {
-                            if file_contents_chars.peek() == Some(&'/') {
-                                // Consume the second '/' and skip the rest of the line
-                                while let Some(next_char) = file_contents_chars.next() {
-                                    if next_char == '\n' {
-                                        line_number += 1;
-                                        break;
-                                    }
-                                }
-                            } else {
-                                println!("SLASH / null");
-                            }
-                        }
-                        ' ' | '\r' | '\t' => {}, // Ignore whitespace
-                        '\n' => {
-                            line_number += 1;
-                        }
-                        '"' => {
-                            let mut string_literal = String::new();
-                            let mut unterminated = true;
-                            while let Some(next_char) = file_contents_chars.next() {
-                                if next_char == '"' {
-                                    println!("STRING \"{}\" {}", string_literal, string_literal);
-                                    unterminated = false;
-                                    break;
-                                } else if next_char == '\n' {
-                                    line_number += 1;
-                                    writeln!(io::stderr(), "[line {}] Error: Unterminated string.", line_number).unwrap();
-                                    has_error = true;
-                                    unterminated = false;
-                                    break;
-                                } else {
-                                    string_literal.push(next_char);
-                                }
-                            }
-                            if unterminated {
-                                writeln!(io::stderr(), "[line {}] Error: Unterminated string.", line_number).unwrap();
-                                has_error = true;
-                            }
-                        }
-                        '0'..='9' => {
-                            // Scan number and parse
-                            let mut number_literal = char.to_string();
-                            while let Some(&next_char) = file_contents_chars.peek() {
-                                if next_char.is_digit(10) {
-                                    number_literal.push(next_char);
-                                    file_contents_chars.next();
-                                } else {
-                                    break;
-                                }
-                            }
-
-                            if let Some(&'.') = file_contents_chars.peek() {
-                                if let Some(next) = file_contents_chars.clone().nth(1) {
-                                    if next.is_digit(10) {
-                                        number_literal.push('.');
-                                        file_contents_chars.next();
-                                        while let Some(&next_char) = file_contents_chars.peek() {
-                                            if next_char.is_digit(10) {
-                                                number_literal.push(next_char);
-                                                file_contents_chars.next();
-                                            } else {
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Parse and format output
-                            let number_value: f64 = number_literal.parse().unwrap();
-                            let formatted_value = if number_literal.contains('.') {
-                                // Check if decimal ends with zeros
-                                let trimmed = number_literal.trim_end_matches('0');
-                                if trimmed.ends_with('.') {
-                                    // It was a whole number like 200.00
-                                    format!("{}.0", number_value)
-                                } else {
-                                    // Regular decimal
-                                    number_value.to_string()
-                                }
-                            } else {
-                                // Integer
-                                format!("{}.0", number_value)
-                            };
-                            println!("NUMBER {} {}", number_literal, formatted_value);
-                        }
-                        'a'..='z' | 'A'..='Z' | '_' => {
-                            let mut identifier = char.to_string();
-                            while let Some(&next_char) = file_contents_chars.peek() {
-                                if next_char.is_alphanumeric() || next_char == '_' {
-                                    identifier.push(next_char);
-                                    file_contents_chars.next();
-                                } else {
-                                    break;
-                                }
-                            }
-                            if let Some(keyword_type) = keywords.get(identifier.as_str()) {
-                                println!("{} {} null", keyword_type, identifier);
-                            } else {
-                                println!("IDENTIFIER {} null", identifier);
-                            }
-                        }
-                        _ => {
-                            writeln!(io::stderr(), "[line {}] Error: Unexpected character: {}", line_number, char).unwrap();
-                            has_error = true;
-                        }
-                    }
-                }
-                println!("EOF  null"); 
-            } else {
-                println!("EOF  null");
-            }
-
-            if has_error {
-                process::exit(65);
-            }
-        }
-        _ => {
-            writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
-            return;
-        }
-    }
-}
-
-fn print_ast_inner(expr: &Expr) {
-    match expr {
-        Expr::Literal(value) => match value {
-            LiteralValue::Number(n) => {
-                if n.fract() == 0.0 {
-                    print!("{}.0", n)
-                } else {
-                    print!("{}", n)
-                }
-            },
-            LiteralValue::String(s) => print!("{}", s),
-            LiteralValue::True => print!("true"),
-            LiteralValue::False => print!("false"),
-            LiteralValue::Nil => print!("nil"),
-        },
-        Expr::Grouping(expr) => {
-            print!("(group ");
-            print_ast_inner(expr);
-            print!(")");
-        }
-    }
-}
-
-fn print_ast(expr: &Expr) {
-    print_ast_inner(expr);
-    println!();
-    io::stdout().flush().unwrap();
 }
