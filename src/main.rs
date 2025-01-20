@@ -493,7 +493,10 @@ impl Display for Expr {
                 write!(f, "({} {} {})", operator.lexeme(), left, right)
             }
             Expr::Grouping(expr) => write!(f, "(group {})", expr),
-            Expr::Literal(value) => write!(f, "{}", value.lexeme()),
+            Expr::Literal(token) => match token {
+                Token::String(s) => write!(f, "{}", s), // Remove quotes
+                _ => write!(f, "{}", token.lexeme()),
+            },
             Expr::Unary(operator, right) => write!(f, "({} {})", operator.lexeme(), right),
         }
     }
