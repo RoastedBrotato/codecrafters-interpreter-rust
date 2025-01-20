@@ -57,32 +57,29 @@ impl Parser {
     }
 
     fn literal(&mut self) -> Option<Expr> {
-        if let Some(token) = self.peek() {
-            match &token.token_type {
-                TokenType::Number(n) => {
-                    self.advance();
-                    Some(Expr::Literal(LiteralValue::Number(*n)))
-                }
-                TokenType::String(s) => {
-                    self.advance();
-                    Some(Expr::Literal(LiteralValue::String(s.clone())))
-                }
-                TokenType::True => {
-                    self.advance();
-                    Some(Expr::Literal(LiteralValue::True))
-                }
-                TokenType::False => {
-                    self.advance();
-                    Some(Expr::Literal(LiteralValue::False))
-                }
-                TokenType::Nil => {
-                    self.advance();
-                    Some(Expr::Literal(LiteralValue::Nil))
-                }
-                _ => None
+        let token = self.peek()?.clone();
+        match token.token_type {
+            TokenType::Number(n) => {
+                self.advance();
+                Some(Expr::Literal(LiteralValue::Number(n)))
             }
-        } else {
-            None
+            TokenType::String(s) => {
+                self.advance();
+                Some(Expr::Literal(LiteralValue::String(s)))
+            }
+            TokenType::True => {
+                self.advance();
+                Some(Expr::Literal(LiteralValue::True))
+            }
+            TokenType::False => {
+                self.advance();
+                Some(Expr::Literal(LiteralValue::False))
+            }
+            TokenType::Nil => {
+                self.advance();
+                Some(Expr::Literal(LiteralValue::Nil))
+            }
+            _ => None
         }
     }
 
