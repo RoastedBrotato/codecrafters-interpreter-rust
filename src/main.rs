@@ -127,6 +127,24 @@ fn scan_tokens(source: &str) -> Vec<Token> {
     while current < chars.len() {
         let c = chars[current];
         match c {
+            '(' => {
+                tokens.push(Token {
+                    token_type: TokenType::LeftParen,
+                    lexeme: "(".to_string(),
+                    literal: None,
+                    line,
+                });
+                current += 1;
+            },
+            ')' => {
+                tokens.push(Token {
+                    token_type: TokenType::RightParen,
+                    lexeme: ")".to_string(),
+                    literal: None,
+                    line,
+                });
+                current += 1;
+            },
             '"' => {
                 current += 1;
                 let mut string = String::new();
