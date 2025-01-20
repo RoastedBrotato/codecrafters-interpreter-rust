@@ -108,16 +108,30 @@ impl Parser {
 
 fn scan_tokens(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
-    let mut start = 0;
     let mut current = 0;
     let mut line = 1;
     let chars: Vec<char> = source.chars().collect();
 
     while current < chars.len() {
-        start = current;
         let c = chars[current];
-        
         match c {
+            '"' => {
+                current += 1;
+                let mut string = String::new();
+                while current < chars.len() && chars[current] != '"' {
+                    string.push(chars[current]);
+                    current += 1;
+                }
+                if current < chars.len() {
+                    current += 1; // consume closing quote
+                    tokens.push(Token {
+                        token_type: TokenType::String(string),
+                        lexeme: format!("\"{}\"", string),
+                        literal: None,
+                        line,
+                    });
+                }
+            }
             '0'..='9' => {
                 let mut number = String::from(c);
                 current += 1;
@@ -423,6 +437,7 @@ fn main() {
 fn print_ast(expr: &Expr) {
     match expr {
         Expr::Literal(value) => match value {
+            LiteralValue::String(s) => print!("{}", s),
             LiteralValue::Number(n) => {
                 if n.fract() == 0.0 {
                     print!("{}.0", n);
@@ -430,7 +445,6 @@ fn print_ast(expr: &Expr) {
                     print!("{}", n);
                 }
             },
-            LiteralValue::String(s) => print!("{}", s),
             LiteralValue::True => print!("true"),
             LiteralValue::False => print!("false"),
             LiteralValue::Nil => print!("nil"),
