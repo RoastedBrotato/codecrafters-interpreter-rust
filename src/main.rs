@@ -631,6 +631,25 @@ struct Interpreter;
 impl Interpreter {
     fn evaluate(&self, expr: &Expr) -> Result<Value, String> {
         match expr {
+            Expr::Binary(left, operator, right) => {
+                let left = self.evaluate(left)?;
+                let right = self.evaluate(right)?;
+
+                match (left, right) {
+                    (Value::Number(l), Value::Number(r)) => match operator {
+                        Token::Star => Ok(Value::Number(l * r)),
+                        Token::Slash => {
+                            if r == 0.0 {
+                                Err("Division by zero.".to_string())
+                            } else {
+                                Ok(Value::Number(l / r))
+                            }
+                        }
+                        _ => Err("Invalid binary operator.".to_string()),
+                    },
+                    _ => Err("Operands must be numbers.".to_string()),
+                }
+            }
             Expr::Unary(operator, expr) => {
                 let right = self.evaluate(expr)?;
                 match operator {
