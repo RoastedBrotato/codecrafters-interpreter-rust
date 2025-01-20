@@ -125,7 +125,7 @@ fn scan_tokens(source: &str) -> Vec<Token> {
                 if current < chars.len() {
                     current += 1; // consume closing quote
                     tokens.push(Token {
-                        token_type: TokenType::String(string),
+                        token_type: TokenType::String(string.clone()),
                         lexeme: format!("\"{}\"", string),
                         literal: None,
                         line,
