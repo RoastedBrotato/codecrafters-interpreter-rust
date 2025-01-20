@@ -70,10 +70,42 @@ fn main() {
             match parser.parse() {
                 Ok(expr) => println!("{}", expr),
                 Err(error) => {
-                    eprintln!("[line {}] Error at '{}': {}", 
-                        error.line, 
-                        error.token.lexeme(), 
-                        error.message);
+                    eprintln!(
+                        "[line {}] Error at '{}': {}",
+                        error.line,
+                        error.token.lexeme(),
+                        error.message
+                    );
+                    std::process::exit(65);
+                }
+            }
+        }
+        "evaluate" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                eprintln!("Failed to read file {}", filename);
+                String::new()
+            });
+            let scanner = Scanner::new(file_contents.as_str());
+            let (tokens, _) = scanner.scan_tokens();
+            let mut parser = Parser::new(tokens);
+            match parser.parse() {
+                Ok(expr) => {
+                    let interpreter = Interpreter;
+                    match interpreter.evaluate(&expr) {
+                        Ok(value) => println!("{}", value),
+                        Err(error) => {
+                            eprintln!("Runtime error: {}", error);
+                            std::process::exit(70);
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!(
+                        "[line {}] Error at '{}': {}",
+                        error.line,
+                        error.token.lexeme(),
+                        error.message
+                    );
                     std::process::exit(65);
                 }
             }
@@ -486,7 +518,12 @@ impl Parser {
 
         while matches!(
             self.peek(),
-            Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual | Token::EqualEqual | Token::BangEqual
+            Token::Greater
+                | Token::GreaterEqual
+                | Token::Less
+                | Token::LessEqual
+                | Token::EqualEqual
+                | Token::BangEqual
         ) {
             let operator = self.advance();
             let right = self.unary()?;
@@ -513,13 +550,13 @@ impl Parser {
                         self.advance();
                         Ok(Expr::Grouping(Box::new(expr)))
                     }
-                    token => Err(self.error(token.clone(), "Expect ')' after expression."))
+                    token => Err(self.error(token.clone(), "Expect ')' after expression.")),
                 }
             }
             Token::Number(_) | Token::String(_) | Token::True | Token::False | Token::Nil => {
                 Ok(Expr::Literal(self.advance()))
             }
-            token => Err(self.error(token.clone(), "Expect expression."))
+            token => Err(self.error(token.clone(), "Expect expression.")),
         }
     }
     fn advance(&mut self) -> Token {
@@ -546,13 +583,60 @@ impl Parser {
     }
     fn synchronize(&mut self) {
         while !self.is_at_end() {
-            if matches!(self.peek(), 
-                Token::Class | Token::Fun | Token::Var | Token::For |
-                Token::If | Token::While | Token::Print | Token::Return
+            if matches!(
+                self.peek(),
+                Token::Class
+                    | Token::Fun
+                    | Token::Var
+                    | Token::For
+                    | Token::If
+                    | Token::While
+                    | Token::Print
+                    | Token::Return
             ) {
                 break;
             }
             self.advance();
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+enum Value {
+    Nil,
+    Boolean(bool),
+    Number(f64),
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Nil => write!(f, "nil"),
+            Value::Boolean(b) => write!(f, "{}", b),
+            Value::Number(n) => {
+                if n.fract() == 0.0 {
+                    write!(f, "{}.0", n)
+                } else {
+                    write!(f, "{}", n)
+                }
+            }
+        }
+    }
+}
+
+struct Interpreter;
+
+impl Interpreter {
+    fn evaluate(&self, expr: &Expr) -> Result<Value, String> {
+        match expr {
+            Expr::Literal(token) => match token {
+                Token::True => Ok(Value::Boolean(true)),
+                Token::False => Ok(Value::Boolean(false)),
+                Token::Nil => Ok(Value::Nil),
+                Token::Number(n) => Ok(Value::Number(n.parse().unwrap())),
+                _ => Err("Invalid literal".to_string()),
+            },
+            _ => Err("Invalid expression".to_string()),
         }
     }
 }
