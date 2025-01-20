@@ -110,6 +110,33 @@ fn main() {
                 }
             }
         }
+        "run" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                eprintln!("Failed to read file {}", filename);
+                String::new()
+            });
+            let scanner = Scanner::new(file_contents.as_str());
+            let (tokens, _) = scanner.scan_tokens();
+            let mut parser = Parser::new(tokens);
+            match parser.parse() {
+                Ok(statements) => {
+                    let mut interpreter = Interpreter;
+                    if let Err(error) = interpreter.interpret(statements) {
+                        eprintln!("Runtime error: {}", error);
+                        std::process::exit(70);
+                    }
+                }
+                Err(error) => {
+                    eprintln!(
+                        "[line {}] Error at '{}': {}",
+                        error.line,
+                        error.token.lexeme(),
+                        error.message
+                    );
+                    std::process::exit(65);
+                }
+            }
+        }
         _ => {
             eprintln!("Unknown command: {}", command);
         }
@@ -485,8 +512,12 @@ impl Parser {
     fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
-    fn parse(&mut self) -> Result<Expr, ParseError> {
-        self.expression()
+    fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.statement()?);
+        }
+        Ok(statements)
     }
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.addition()
@@ -599,8 +630,24 @@ impl Parser {
             self.advance();
         }
     }
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
+        if matches!(self.peek(), Token::Print) {
+            self.advance();
+            let value = self.expression()?;
+            self.consume(Token::Semicolon, "Expect ';' after value.")?;
+            Ok(Stmt::Print(value))
+        } else {
+            let expr = self.expression()?;
+            self.consume(Token::Semicolon, "Expect ';' after expression.")?;
+            Ok(Stmt::Expression(expr))
+        }
+    }
 }
-
+#[derive(Debug)]
+enum Stmt {
+    Print(Expr),
+    Expression(Expr),
+}
 #[derive(Debug, Clone)]
 enum Value {
     Number(f64),
@@ -710,6 +757,26 @@ impl Interpreter {
             Value::Nil => false,
             Value::Boolean(b) => *b,
             _ => true,
+        }
+    }
+    fn interpret(&mut self, statements: Vec<Stmt>) -> Result<(), String> {
+        for stmt in statements {
+            self.execute(stmt)?;
+        }
+        Ok(())
+    }
+
+    fn execute(&mut self, stmt: Stmt) -> Result<(), String> {
+        match stmt {
+            Stmt::Print(expr) => {
+                let value = self.evaluate(&expr)?;
+                println!("{}", value);
+                Ok(())
+            }
+            Stmt::Expression(expr) => {
+                self.evaluate(&expr)?;
+                Ok(())
+            }
         }
     }
 }
