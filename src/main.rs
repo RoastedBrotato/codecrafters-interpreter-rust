@@ -650,6 +650,13 @@ impl Parser {
         self.consume(Token::Semicolon, "Expect ';' after expression.")?;
         Ok(Stmt::Expression(expr))
     }
+    fn consume(&mut self, expected: Token, message: &str) -> Result<Token, ParseError> {
+        if self.peek() == &expected {
+            Ok(self.advance())
+        } else {
+            Err(self.error(self.peek().clone(), message))
+        }
+    }
 }
 #[derive(Debug)]
 enum Stmt {
@@ -756,7 +763,6 @@ impl Interpreter {
                 Token::Nil => Ok(Value::Nil),
                 _ => Err("Invalid literal".to_string()),
             },
-            _ => Err("Invalid expression".to_string()),
         }
     }
 
