@@ -461,9 +461,23 @@ impl Parser {
         Ok(expr)
     }
     fn multiplication(&mut self) -> Result<Expr, ()> {
-        let mut expr = self.unary()?;
+        let mut expr = self.comparison()?;
 
         while matches!(self.peek(), Token::Star | Token::Slash) {
+            let operator = self.advance();
+            let right = self.comparison()?;
+            expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
+        }
+
+        Ok(expr)
+    }
+    fn comparison(&mut self) -> Result<Expr, ()> {
+        let mut expr = self.unary()?;
+
+        while matches!(
+            self.peek(),
+            Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual
+        ) {
             let operator = self.advance();
             let right = self.unary()?;
             expr = Expr::Binary(Box::new(expr), operator, Box::new(right));
