@@ -27,6 +27,7 @@ struct Token {
 #[derive(Debug)]
 enum Expr {
     Literal(LiteralValue),
+    Grouping(Box<Expr>),
 }
 
 #[derive(Debug)]
@@ -53,12 +54,23 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Option<Expr> {
-        self.literal()
+        self.primary()
     }
 
-    fn literal(&mut self) -> Option<Expr> {
+    fn primary(&mut self) -> Option<Expr> {
         let token = self.peek()?.clone();
         match token.token_type {
+            TokenType::LeftParen => {
+                self.advance();
+                let expr = self.expression()?;
+                if let Some(token) = self.peek() {
+                    if matches!(token.token_type, TokenType::RightParen) {
+                        self.advance();
+                        return Some(Expr::Grouping(Box::new(expr)));
+                    }
+                }
+                None
+            }
             TokenType::Number(n) => {
                 self.advance();
                 Some(Expr::Literal(LiteralValue::Number(n)))
@@ -437,17 +449,22 @@ fn main() {
 fn print_ast(expr: &Expr) {
     match expr {
         Expr::Literal(value) => match value {
-            LiteralValue::String(s) => print!("{}", s),
             LiteralValue::Number(n) => {
                 if n.fract() == 0.0 {
-                    print!("{}.0", n);
+                    print!("{}.0", n)
                 } else {
-                    print!("{}", n);
+                    print!("{}", n)
                 }
             },
+            LiteralValue::String(s) => print!("{}", s),
             LiteralValue::True => print!("true"),
             LiteralValue::False => print!("false"),
             LiteralValue::Nil => print!("nil"),
+        },
+        Expr::Grouping(expr) => {
+            print!("(group ");
+            print_ast(expr);
+            print!(")");
         }
     }
     println!();
