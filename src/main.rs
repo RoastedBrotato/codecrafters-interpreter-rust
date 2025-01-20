@@ -219,6 +219,9 @@ impl Token {
     }
     fn lexeme(&self) -> String {
         match self {
+            Token::String(s) => s.clone(), // Remove quotes
+            Token::Number(n) => n.clone(),
+            Token::Identifier(name) => name.clone(),
             Token::LeftParen => LEFT_PAREN.to_string(),
             Token::RightParen => RIGHT_PAREN.to_string(),
             Token::LeftBrace => LEFT_BRACE.to_string(),
@@ -238,9 +241,6 @@ impl Token {
             Token::GreaterEqual => GREATER_EQUAL.to_string(),
             Token::Less => LESS.to_string(),
             Token::LessEqual => LESS_EQUAL.to_string(),
-            Token::Identifier(identifier) => identifier.to_string(),
-            Token::String(string) => format!("\"{}\"", string),
-            Token::Number(number) => number.to_string(),
             Token::And => AND.to_string(),
             Token::Class => CLASS.to_string(),
             Token::Else => ELSE.to_string(),
@@ -270,13 +270,7 @@ impl Token {
 }
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self.token_type(),
-            self.lexeme(),
-            self.literal()
-        )
+        write!(f, "{}", self.lexeme())
     }
 }
 struct Scanner<'a> {
