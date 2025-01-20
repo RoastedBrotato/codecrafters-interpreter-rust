@@ -514,7 +514,7 @@ fn main() {
     }
 }
 
-fn print_ast(expr: &Expr) {
+fn print_ast_inner(expr: &Expr) {
     match expr {
         Expr::Literal(value) => match value {
             LiteralValue::Number(n) => {
@@ -531,10 +531,14 @@ fn print_ast(expr: &Expr) {
         },
         Expr::Grouping(expr) => {
             print!("(group ");
-            print_ast(expr);
+            print_ast_inner(expr);
             print!(")");
         }
     }
+}
+
+fn print_ast(expr: &Expr) {
+    print_ast_inner(expr);
     println!();
     io::stdout().flush().unwrap();
 }
