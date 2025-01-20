@@ -88,7 +88,7 @@ fn main() {
             let scanner = Scanner::new(file_contents.as_str());
             let (tokens, _) = scanner.scan_tokens();
             let mut parser = Parser::new(tokens);
-            match parser.parse() {
+            match parser.parse_expression() {
                 Ok(expr) => {
                     let interpreter = Interpreter;
                     match interpreter.evaluate(&expr) {
@@ -518,6 +518,10 @@ impl Parser {
             statements.push(self.statement()?);
         }
         Ok(statements)
+    }
+
+    fn parse_expression(&mut self) -> Result<Expr, ParseError> {
+        self.expression()
     }
     fn expression(&mut self) -> Result<Expr, ParseError> {
         self.addition()
