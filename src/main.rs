@@ -235,17 +235,7 @@ impl Token {
     fn lexeme(&self) -> String {
         match self {
             Token::String(s) => format!("\"{}\"", s), // Add quotes for display
-            Token::Number(n) => {
-                let num: f64 = n.parse().unwrap();
-                if num.fract() == 0.0 {
-                    format!("{}.0", num)
-                } else {
-                    format!("{}", num)
-                        .trim_end_matches('0')
-                        .trim_end_matches('.')
-                        .to_string()
-                }
-            }
+            Token::Number(n) => n.clone(),            // Raw input
             Token::Identifier(name) => name.clone(),
             Token::LeftParen => LEFT_PAREN.to_string(),
             Token::RightParen => RIGHT_PAREN.to_string(),
@@ -288,7 +278,14 @@ impl Token {
     fn literal(&self) -> String {
         match self {
             Token::String(s) => s.clone(), // No quotes for literal
-            Token::Number(n) => n.clone(),
+            Token::Number(n) => {
+                let num: f64 = n.parse().unwrap();
+                if num.fract() == 0.0 {
+                    format!("{}.0", num)
+                } else {
+                    n.clone()
+                }
+            }
             Token::Identifier(_) => "null".to_string(),
             _ => "null".to_string(),
         }
