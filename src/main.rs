@@ -10,6 +10,7 @@ enum TokenType {
     LeftParen, RightParen, Plus,
     // Literals
     Number(f64),
+    String(String),
     // Keywords
     True, False, Nil,
     Eof
@@ -31,6 +32,7 @@ enum Expr {
 #[derive(Debug)]
 enum LiteralValue {
     Number(f64),
+    String(String),
     True,
     False,
     Nil,
@@ -60,6 +62,10 @@ impl Parser {
                 TokenType::Number(n) => {
                     self.advance();
                     Some(Expr::Literal(LiteralValue::Number(n)))
+                }
+                TokenType::String(s) => {
+                    self.advance();
+                    Some(Expr::Literal(LiteralValue::String(s)))
                 }
                 TokenType::True => {
                     self.advance();
@@ -427,6 +433,7 @@ fn print_ast(expr: &Expr) {
                     print!("{}", n);
                 }
             },
+            LiteralValue::String(s) => print!("{}", s),
             LiteralValue::True => print!("true"),
             LiteralValue::False => print!("false"),
             LiteralValue::Nil => print!("nil"),
