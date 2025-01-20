@@ -240,7 +240,10 @@ impl Token {
                 if num.fract() == 0.0 {
                     format!("{}.0", num)
                 } else {
-                    n.clone()
+                    format!("{}", num)
+                        .trim_end_matches('0')
+                        .trim_end_matches('.')
+                        .to_string()
                 }
             }
             Token::Identifier(name) => name.clone(),
