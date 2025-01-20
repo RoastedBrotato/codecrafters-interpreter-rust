@@ -127,83 +127,18 @@ fn scan_tokens(source: &str) -> Vec<Token> {
     while current < chars.len() {
         let c = chars[current];
         match c {
-            '(' => {
-                tokens.push(Token {
-                    token_type: TokenType::LeftParen,
-                    lexeme: "(".to_string(),
-                    literal: None,
-                    line,
-                });
-                current += 1;
-            },
-            ')' => {
-                tokens.push(Token {
-                    token_type: TokenType::RightParen,
-                    lexeme: ")".to_string(),
-                    literal: None,
-                    line,
-                });
-                current += 1;
-            },
-            '"' => {
-                current += 1;
-                let mut string = String::new();
-                while current < chars.len() && chars[current] != '"' {
-                    string.push(chars[current]);
-                    current += 1;
-                }
-                if current < chars.len() {
-                    current += 1; // consume closing quote
-                    tokens.push(Token {
-                        token_type: TokenType::String(string.clone()),
-                        lexeme: format!("\"{}\"", string),
-                        literal: None,
-                        line,
-                    });
-                }
-            }
-            '0'..='9' => {
-                let mut number = String::from(c);
-                current += 1;
-                
-                while current < chars.len() && chars[current].is_digit(10) {
-                    number.push(chars[current]);
-                    current += 1;
-                }
-                
-                // Check for decimal part
-                if current < chars.len() && chars[current] == '.' && 
-                   current + 1 < chars.len() && chars[current + 1].is_digit(10) {
-                    number.push('.');
-                    current += 1;
-                    
-                    while current < chars.len() && chars[current].is_digit(10) {
-                        number.push(chars[current]);
-                        current += 1;
-                    }
-                }
-                
-                let value: f64 = number.parse().unwrap();
-                tokens.push(Token {
-                    token_type: TokenType::Number(value),
-                    lexeme: number,
-                    literal: None,
-                    line,
-                });
-                continue;
-            }
-            'f' => {
-                if current + 4 < chars.len() && 
-                   &chars[current..current + 5].iter().collect::<String>() == "false" {
-                    tokens.push(Token {
-                        token_type: TokenType::False,
-                        lexeme: "false".to_string(),
-                        literal: None,
-                        line,
-                    });
-                    current += 4;
-                }
-            },
+            '(' => tokens.push(Token {
+                token_type: TokenType::LeftParen,
+                lexeme: "(".to_string(),
+                literal: None,
+                line,
+            }),
+            ')' => tokens.push(Token {
+                token_type: TokenType::RightParen,
+                lexeme: ")".to_string(),
+                literal: None,
+                line,
+            }),
             't' => {
                 if current + 3 < chars.len() && 
                    &chars[current..current + 4].iter().collect::<String>() == "true" {
@@ -216,20 +151,7 @@ fn scan_tokens(source: &str) -> Vec<Token> {
                     current += 3;
                 }
             },
-            'n' => {
-                if current + 2 < chars.len() && 
-                   &chars[current..current + 3].iter().collect::<String>() == "nil" {
-                    tokens.push(Token {
-                        token_type: TokenType::Nil,
-                        lexeme: "nil".to_string(),
-                        literal: None,
-                        line,
-                    });
-                    current += 2;
-                }
-            },
-            ' ' | '\r' | '\t' => {},
-            '\n' => line += 1,
+            ' ' | '\r' | '\t' | '\n' => {},
             _ => {}
         }
         current += 1;
