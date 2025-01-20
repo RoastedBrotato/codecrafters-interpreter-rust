@@ -59,7 +59,12 @@ fn main() {
                 std::process::exit(65);
             }
             for token in tokens {
-                println!("{} {}", token.token_type(), token.lexeme());
+                println!(
+                    "{} {} {}",
+                    token.token_type(),
+                    token.lexeme(),
+                    token.literal()
+                );
             }
         }
         "parse" => {
@@ -279,8 +284,9 @@ impl Token {
     }
     fn literal(&self) -> String {
         match self {
-            Token::String(string) => string.to_string(),
-            Token::Number(number) => format!("{:?}", number.parse::<f64>().unwrap()),
+            Token::String(s) => format!("\"{}\"", s),
+            Token::Number(n) => n.clone(),
+            Token::Identifier(name) => name.clone(),
             _ => "null".to_string(),
         }
     }
