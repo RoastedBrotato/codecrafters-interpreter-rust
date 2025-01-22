@@ -314,27 +314,7 @@ impl<'a> Scanner<'a> {
     fn scan_tokens(mut self) -> (Vec<Token>, bool) {
         while let Some(c) = self.advance() {
             let token: Option<Token> = match c {
-                '"' => {
-                    let mut value = String::new();
-                    while let Some(&c) = self.current.peek() {
-                        match c {
-                            '"' => {
-                                self.advance();
-                                self.tokens.push(Token::String(value));
-                                break;
-                            }
-                            '\n' => self.line += 1,
-                            _ => value.push(self.advance().unwrap()),
-                        }
-                    }
-                    if !self.current.peek().is_some_and(|&c| c == '"') {
-                        self.report_error("Unterminated string.");
-                        self.had_error = true;
-                        Some(Token::String(value))
-                    } else {
-                        None
-                    }
-                }
+                '"' => self.scan_string(),
                 // ...existing code...
                 LEFT_PAREN => Some(Token::LeftParen),
                 RIGHT_PAREN => Some(Token::RightParen),
@@ -481,11 +461,14 @@ impl<'a> Scanner<'a> {
     }
     fn scan_string(&mut self) -> Option<Token> {
         let mut value = String::new();
+        let mut terminated = false;
+
         while let Some(&c) = self.current.peek() {
             match c {
                 '"' => {
                     self.advance();
-                    return Some(Token::String(value));
+                    terminated = true;
+                    break;
                 }
                 '\n' => {
                     self.line += 1;
@@ -495,12 +478,11 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        self.report_error("Unterminated string.");
-        if !value.is_empty() {
-            Some(Token::String(value))
-        } else {
-            None
+        if !terminated {
+            self.report_error("Unterminated string.");
         }
+
+        Some(Token::String(value))
     }
 }
 #[derive(Debug)]
