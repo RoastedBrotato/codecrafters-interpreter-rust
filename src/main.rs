@@ -313,146 +313,8 @@ impl<'a> Scanner<'a> {
     }
     fn scan_tokens(mut self) -> (Vec<Token>, bool) {
         while let Some(c) = self.advance() {
-            match c {
-                '"' => {
-                    let mut value = String::new();
-                    let mut terminated = false;
-
-                    while let Some(&c) = self.current.peek() {
-                        match c {
-                            '"' => {
-                                self.advance();
-                                terminated = true;
-                                self.tokens.push(Token::String(value.clone()));
-                                break;
-                            }
-                            '\n' => {
-                                self.line += 1;
-                                value.push(self.advance().unwrap());
-                            }
-                            _ => value.push(self.advance().unwrap()),
-                        }
-                    }
-
-                    if !terminated {
-                        self.report_error("Unterminated string.");
-                        // Still push the valid token we found
-                        self.tokens.push(Token::String(value));
-                    }
-                }
-                // ...existing code...
-                LEFT_PAREN => Some(Token::LeftParen),
-                RIGHT_PAREN => Some(Token::RightParen),
-                LEFT_BRACE => Some(Token::LeftBrace),
-                RIGHT_BRACE => Some(Token::RightBrace),
-                STAR => Some(Token::Star),
-                DOT => Some(Token::Dot),
-                COMMA => Some(Token::Comma),
-                PLUS => Some(Token::Plus),
-                MINUS => Some(Token::Minus),
-                SEMICOLON => Some(Token::Semicolon),
-                EQUAL => {
-                    if self.next_match(EQUAL) {
-                        Some(Token::EqualEqual)
-                    } else {
-                        Some(Token::Equal)
-                    }
-                }
-                BANG => {
-                    if self.next_match(EQUAL) {
-                        Some(Token::BangEqual)
-                    } else {
-                        Some(Token::Bang)
-                    }
-                }
-                LESS => {
-                    if self.next_match(EQUAL) {
-                        Some(Token::LessEqual)
-                    } else {
-                        Some(Token::Less)
-                    }
-                }
-                GREATER => {
-                    if self.next_match(EQUAL) {
-                        Some(Token::GreaterEqual)
-                    } else {
-                        Some(Token::Greater)
-                    }
-                }
-                SLASH => {
-                    if self.next_match(SLASH) {
-                        while let Some(c) = self.current.peek() {
-                            if *c != '\n' {
-                                self.advance();
-                            } else {
-                                break;
-                            }
-                        }
-                        None
-                    } else {
-                        Some(Token::Slash)
-                    }
-                }
-                _ if c.is_numeric() => {
-                    let mut value = String::new();
-                    value.push(c);
-                    while let Some(c) = self.current.peek() {
-                        if c.is_numeric() {
-                            value.push(*c);
-                            self.advance();
-                        } else {
-                            break;
-                        }
-                    }
-                    let mut advanced_iterator = self.current.clone();
-                    advanced_iterator.next();
-                    if let Some(&DOT) = self.current.peek() {
-                        if advanced_iterator.peek().is_some_and(|c| c.is_numeric()) {
-                            value.push(DOT);
-                            self.advance();
-                            while let Some(c) = self.current.peek() {
-                                if c.is_numeric() {
-                                    value.push(*c);
-                                    self.advance();
-                                } else {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    Some(Token::Number(value))
-                }
-                _ if c.is_alphabetic() || c == '_' => {
-                    let mut value = String::new();
-                    value.push(c);
-                    while let Some(c) = self.current.peek() {
-                        if c.is_alphanumeric() || *c == '_' {
-                            value.push(*c);
-                            self.advance();
-                        } else {
-                            break;
-                        }
-                    }
-                    Some(match value.as_str() {
-                        AND => Token::And,
-                        CLASS => Token::Class,
-                        ELSE => Token::Else,
-                        FALSE => Token::False,
-                        FOR => Token::For,
-                        FUN => Token::Fun,
-                        IF => Token::If,
-                        NIL => Token::Nil,
-                        OR => Token::Or,
-                        PRINT => Token::Print,
-                        RETURN => Token::Return,
-                        SUPER => Token::Super,
-                        THIS => Token::This,
-                        TRUE => Token::True,
-                        VAR => Token::Var,
-                        WHILE => Token::While,
-                        _ => Token::Identifier(value),
-                    })
-                }
+            let token = match c {
+                '"' => self.scan_string(),
                 '\n' => {
                     self.line += 1;
                     None
@@ -463,24 +325,15 @@ impl<'a> Scanner<'a> {
                     None
                 }
             };
+
+            if let Some(token) = token {
+                self.tokens.push(token);
+            }
         }
         self.tokens.push(Token::Eof);
         (self.tokens, self.had_error)
     }
-    fn report_error(&mut self, error: &str) {
-        self.had_error = true;
-        eprintln!("[line {}] Error: {error}", self.line);
-    }
-    fn advance(&mut self) -> Option<char> {
-        self.current.next()
-    }
-    fn next_match(&mut self, expected: char) -> bool {
-        if self.current.peek() != Some(&expected) {
-            return false;
-        }
-        self.current.next();
-        true
-    }
+
     fn scan_string(&mut self) -> Option<Token> {
         let mut value = String::new();
         let mut terminated = false;
@@ -505,6 +358,20 @@ impl<'a> Scanner<'a> {
         }
 
         Some(Token::String(value))
+    }
+    fn report_error(&mut self, error: &str) {
+        self.had_error = true;
+        eprintln!("[line {}] Error: {error}", self.line);
+    }
+    fn advance(&mut self) -> Option<char> {
+        self.current.next()
+    }
+    fn next_match(&mut self, expected: char) -> bool {
+        if self.current.peek() != Some(&expected) {
+            return false;
+        }
+        self.current.next();
+        true
     }
 }
 #[derive(Debug)]
