@@ -312,13 +312,30 @@ impl<'a> Scanner<'a> {
         }
     }
     fn scan_tokens(mut self) -> (Vec<Token>, bool) {
-        self.scan_token();
-        self.tokens.push(Token::Eof);
-        (self.tokens, self.had_error)
-    }
-    fn scan_token(&mut self) {
         while let Some(c) = self.advance() {
             let token: Option<Token> = match c {
+                '"' => {
+                    let mut value = String::new();
+                    while let Some(&c) = self.current.peek() {
+                        match c {
+                            '"' => {
+                                self.advance();
+                                self.tokens.push(Token::String(value));
+                                break;
+                            }
+                            '\n' => self.line += 1,
+                            _ => value.push(self.advance().unwrap()),
+                        }
+                    }
+                    if !self.current.peek().is_some_and(|&c| c == '"') {
+                        self.report_error("Unterminated string.");
+                        self.had_error = true;
+                        Some(Token::String(value))
+                    } else {
+                        None
+                    }
+                }
+                // ...existing code...
                 LEFT_PAREN => Some(Token::LeftParen),
                 RIGHT_PAREN => Some(Token::RightParen),
                 LEFT_BRACE => Some(Token::LeftBrace),
@@ -371,7 +388,6 @@ impl<'a> Scanner<'a> {
                         Some(Token::Slash)
                     }
                 }
-                '"' => self.scan_string(),
                 _ if c.is_numeric() => {
                     let mut value = String::new();
                     value.push(c);
@@ -446,6 +462,8 @@ impl<'a> Scanner<'a> {
                 self.tokens.push(token);
             }
         }
+        self.tokens.push(Token::Eof);
+        (self.tokens, self.had_error)
     }
     fn report_error(&mut self, error: &str) {
         self.had_error = true;
