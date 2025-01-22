@@ -371,24 +371,7 @@ impl<'a> Scanner<'a> {
                         Some(Token::Slash)
                     }
                 }
-                '"' => {
-                    let mut value = String::new();
-                    loop {
-                        match self.advance() {
-                            Some('"') => break Some(Token::String(value)),
-                            Some(c) => {
-                                if c == '\n' {
-                                    self.line += 1;
-                                }
-                                value.push(c);
-                            }
-                            None => {
-                                self.report_error("Unterminated string.");
-                                break None;
-                            }
-                        }
-                    }
-                }
+                '"' => self.scan_string(),
                 _ if c.is_numeric() => {
                     let mut value = String::new();
                     value.push(c);
@@ -477,6 +460,27 @@ impl<'a> Scanner<'a> {
         }
         self.current.next();
         true
+    }
+    fn scan_string(&mut self) -> Option<Token> {
+        let mut value = String::new();
+        while let Some(&c) = self.current.peek() {
+            match c {
+                '"' => {
+                    self.advance();
+                    return Some(Token::String(value));
+                }
+                '\n' => self.line += 1,
+                _ => value.push(self.advance().unwrap()),
+            }
+        }
+
+        self.report_error("Unterminated string.");
+        // Return valid token even after error
+        if !value.is_empty() {
+            Some(Token::String(value))
+        } else {
+            None
+        }
     }
 }
 #[derive(Debug)]
