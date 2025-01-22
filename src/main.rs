@@ -692,35 +692,46 @@ impl Interpreter {
                 let left = self.evaluate(left)?;
                 let right = self.evaluate(right)?;
 
-                match (left, right) {
-                    (Value::Number(l), Value::Number(r)) => match operator {
-                        Token::Plus => Ok(Value::Number(l + r)),
-                        Token::Minus => Ok(Value::Number(l - r)),
-                        Token::Star => Ok(Value::Number(l * r)),
-                        Token::Slash => {
-                            if r == 0.0 {
-                                Err("Division by zero.".to_string())
-                            } else {
-                                Ok(Value::Number(l / r))
-                            }
+                match operator {
+                    Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual => {
+                        match (left, right) {
+                            (Value::Number(l), Value::Number(r)) => match operator {
+                                Token::Greater => Ok(Value::Boolean(l > r)),
+                                Token::GreaterEqual => Ok(Value::Boolean(l >= r)),
+                                Token::Less => Ok(Value::Boolean(l < r)),
+                                Token::LessEqual => Ok(Value::Boolean(l <= r)),
+                                _ => unreachable!(),
+                            },
+                            _ => Err("Operands must be numbers.".to_string()),
                         }
-                        Token::Greater => Ok(Value::Boolean(l > r)),
-                        Token::GreaterEqual => Ok(Value::Boolean(l >= r)),
-                        Token::Less => Ok(Value::Boolean(l < r)),
-                        Token::LessEqual => Ok(Value::Boolean(l <= r)),
-                        Token::EqualEqual => Ok(Value::Boolean(l == r)),
-                        Token::BangEqual => Ok(Value::Boolean(l != r)),
-                        _ => Err("Invalid operator for numbers.".to_string()),
+                    }
+                    _ => match (left, right) {
+                        (Value::Number(l), Value::Number(r)) => match operator {
+                            Token::Plus => Ok(Value::Number(l + r)),
+                            Token::Minus => Ok(Value::Number(l - r)),
+                            Token::Star => Ok(Value::Number(l * r)),
+                            Token::Slash => {
+                                if r == 0.0 {
+                                    Err("Division by zero.".to_string())
+                                } else {
+                                    Ok(Value::Number(l / r))
+                                }
+                            }
+                            Token::EqualEqual => Ok(Value::Boolean(l == r)),
+                            Token::BangEqual => Ok(Value::Boolean(l != r)),
+                            _ => Err("Invalid operator for numbers.".to_string()),
+                        },
+                        (Value::String(l), Value::String(r)) => match operator {
+                            Token::Plus => Ok(Value::String(l + &r)),
+                            Token::EqualEqual => Ok(Value::Boolean(l == r)),
+                            Token::BangEqual => Ok(Value::Boolean(l != r)),
+                            _ => Err("Invalid operator for strings.".to_string()),
+                        },
+                        _ => Err("Operands must be two numbers or two strings.".to_string()),
                     },
-                    (Value::String(l), Value::String(r)) => match operator {
-                        Token::Plus => Ok(Value::String(l + &r)),
-                        Token::EqualEqual => Ok(Value::Boolean(l == r)),
-                        Token::BangEqual => Ok(Value::Boolean(l != r)),
-                        _ => Err("Invalid operator for strings.".to_string()),
-                    },
-                    _ => Err("Operands must be two numbers or two strings.".to_string()),
                 }
             }
+            // ...existing code...
             Expr::Unary(operator, expr) => {
                 let right = self.evaluate(expr)?;
                 match operator {
