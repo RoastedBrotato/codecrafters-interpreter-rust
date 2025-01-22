@@ -694,7 +694,7 @@ impl Interpreter {
 
                 match operator {
                     Token::Greater | Token::GreaterEqual | Token::Less | Token::LessEqual => {
-                        match (left, right) {
+                        match (&left, &right) {
                             (Value::Number(l), Value::Number(r)) => match operator {
                                 Token::Greater => Ok(Value::Boolean(l > r)),
                                 Token::GreaterEqual => Ok(Value::Boolean(l >= r)),
@@ -702,7 +702,10 @@ impl Interpreter {
                                 Token::LessEqual => Ok(Value::Boolean(l <= r)),
                                 _ => unreachable!(),
                             },
-                            _ => Err("Operands must be numbers.".to_string()),
+                            _ => {
+                                // Return error for non-number comparisons
+                                return Err("Operands must be numbers.".to_string());
+                            }
                         }
                     }
                     _ => match (left, right) {
