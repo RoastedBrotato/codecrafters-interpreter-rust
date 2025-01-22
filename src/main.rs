@@ -314,12 +314,43 @@ impl<'a> Scanner<'a> {
     fn scan_tokens(mut self) -> (Vec<Token>, bool) {
         while let Some(c) = self.advance() {
             let token = match c {
+                '/' => {
+                    if self.matches('/') {
+                        // Comment goes until end of line
+                        while let Some(&c) = self.current.peek() {
+                            if c == '\n' {
+                                break;
+                            }
+                            self.advance();
+                        }
+                        None
+                    } else {
+                        Some(Token::Slash)
+                    }
+                }
                 '"' => self.scan_string(),
                 '\n' => {
                     self.line += 1;
                     None
                 }
-                ' ' | '\t' => None,
+                ' ' | '\t' | '\r' => None,
+                ';' => Some(Token::Semicolon),
+                'a'..='z' | 'A'..='Z' | '_' => {
+                    let mut identifier = String::from(c);
+                    while let Some(&c) = self.current.peek() {
+                        if c.is_alphanumeric() || c == '_' {
+                            identifier.push(self.advance().unwrap());
+                        } else {
+                            break;
+                        }
+                    }
+                    match identifier.as_str() {
+                        "print" => Some(Token::Print),
+                        "true" => Some(Token::True),
+                        "false" => Some(Token::False),
+                        _ => Some(Token::Identifier(identifier)),
+                    }
+                }
                 _ => {
                     self.report_error(format!("Unexpected character: {c}").as_str());
                     None
@@ -372,6 +403,14 @@ impl<'a> Scanner<'a> {
         }
         self.current.next();
         true
+    }
+    fn matches(&mut self, expected: char) -> bool {
+        if self.current.peek() == Some(&expected) {
+            self.advance();
+            true
+        } else {
+            false
+        }
     }
 }
 #[derive(Debug)]
