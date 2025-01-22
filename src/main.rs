@@ -313,8 +313,33 @@ impl<'a> Scanner<'a> {
     }
     fn scan_tokens(mut self) -> (Vec<Token>, bool) {
         while let Some(c) = self.advance() {
-            let token: Option<Token> = match c {
-                '"' => self.scan_string(),
+            match c {
+                '"' => {
+                    let mut value = String::new();
+                    let mut terminated = false;
+
+                    while let Some(&c) = self.current.peek() {
+                        match c {
+                            '"' => {
+                                self.advance();
+                                terminated = true;
+                                self.tokens.push(Token::String(value.clone()));
+                                break;
+                            }
+                            '\n' => {
+                                self.line += 1;
+                                value.push(self.advance().unwrap());
+                            }
+                            _ => value.push(self.advance().unwrap()),
+                        }
+                    }
+
+                    if !terminated {
+                        self.report_error("Unterminated string.");
+                        // Still push the valid token we found
+                        self.tokens.push(Token::String(value));
+                    }
+                }
                 // ...existing code...
                 LEFT_PAREN => Some(Token::LeftParen),
                 RIGHT_PAREN => Some(Token::RightParen),
@@ -438,9 +463,6 @@ impl<'a> Scanner<'a> {
                     None
                 }
             };
-            if let Some(token) = token {
-                self.tokens.push(token);
-            }
         }
         self.tokens.push(Token::Eof);
         (self.tokens, self.had_error)
