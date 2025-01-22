@@ -95,7 +95,10 @@ fn main() {
                 Ok(expr) => {
                     let interpreter = Interpreter;
                     match interpreter.evaluate(&expr) {
-                        Ok(value) => println!("{}", value),
+                        Ok(value) => {
+                            println!("{}", value);
+                            std::process::exit(0);
+                        }
                         Err(error) => {
                             eprintln!("Runtime error: {}", error);
                             std::process::exit(70);
