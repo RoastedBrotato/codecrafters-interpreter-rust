@@ -314,6 +314,11 @@ impl<'a> Scanner<'a> {
     fn scan_tokens(mut self) -> (Vec<Token>, bool) {
         while let Some(c) = self.advance() {
             let token = match c {
+                '(' => Some(Token::LeftParen),
+                ')' => Some(Token::RightParen),
+                '+' => Some(Token::Plus),
+                '-' => Some(Token::Minus),
+                '*' => Some(Token::Star),
                 '/' => {
                     if self.matches('/') {
                         while let Some(&c) = self.current.peek() {
@@ -327,9 +332,6 @@ impl<'a> Scanner<'a> {
                         Some(Token::Slash)
                     }
                 }
-                '+' => Some(Token::Plus),
-                '-' => Some(Token::Minus),
-                '*' => Some(Token::Star),
                 '=' => {
                     if self.matches('=') {
                         Some(Token::EqualEqual)
@@ -338,11 +340,12 @@ impl<'a> Scanner<'a> {
                     }
                 }
                 '"' => self.scan_string(),
+                '0'..='9' => self.scan_number(c),
                 '\n' => {
                     self.line += 1;
                     None
                 }
-                ' ' | '\t' | '\r' => None,
+                ' ' | '\r' | '\t' => None,
                 ';' => Some(Token::Semicolon),
                 'a'..='z' | 'A'..='Z' | '_' => {
                     let mut identifier = String::from(c);
@@ -360,10 +363,7 @@ impl<'a> Scanner<'a> {
                         _ => Some(Token::Identifier(identifier)),
                     }
                 }
-                _ => {
-                    self.report_error(format!("Unexpected character: {c}").as_str());
-                    None
-                }
+                _ => None,
             };
 
             if let Some(token) = token {
@@ -398,6 +398,29 @@ impl<'a> Scanner<'a> {
         }
 
         Some(Token::String(value))
+    }
+    fn scan_number(&mut self, first: char) -> Option<Token> {
+        let mut number = String::from(first);
+
+        while let Some(&c) = self.current.peek() {
+            if c.is_ascii_digit() {
+                number.push(self.advance().unwrap());
+            } else if c == '.' {
+                number.push(self.advance().unwrap());
+                while let Some(&c) = self.current.peek() {
+                    if c.is_ascii_digit() {
+                        number.push(self.advance().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                break;
+            } else {
+                break;
+            }
+        }
+
+        Some(Token::Number(number))
     }
     fn report_error(&mut self, error: &str) {
         self.had_error = true;
