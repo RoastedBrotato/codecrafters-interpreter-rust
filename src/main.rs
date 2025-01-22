@@ -316,7 +316,6 @@ impl<'a> Scanner<'a> {
             let token = match c {
                 '/' => {
                     if self.matches('/') {
-                        // Comment goes until end of line
                         while let Some(&c) = self.current.peek() {
                             if c == '\n' {
                                 break;
@@ -326,6 +325,16 @@ impl<'a> Scanner<'a> {
                         None
                     } else {
                         Some(Token::Slash)
+                    }
+                }
+                '+' => Some(Token::Plus),
+                '-' => Some(Token::Minus),
+                '*' => Some(Token::Star),
+                '=' => {
+                    if self.matches('=') {
+                        Some(Token::EqualEqual)
+                    } else {
+                        Some(Token::Equal)
                     }
                 }
                 '"' => self.scan_string(),
