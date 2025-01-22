@@ -70,7 +70,7 @@ fn main() {
         "parse" => {
             let scanner = Scanner::new(file_contents.as_str());
             let (tokens, had_error) = scanner.scan_tokens();
-            if (had_error) {
+            if had_error {
                 std::process::exit(65);
             }
             let mut parser = Parser::new(tokens);
