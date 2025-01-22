@@ -487,13 +487,15 @@ impl<'a> Scanner<'a> {
                     self.advance();
                     return Some(Token::String(value));
                 }
-                '\n' => self.line += 1,
+                '\n' => {
+                    self.line += 1;
+                    value.push(self.advance().unwrap());
+                }
                 _ => value.push(self.advance().unwrap()),
             }
         }
 
         self.report_error("Unterminated string.");
-        // Return valid token even after error
         if !value.is_empty() {
             Some(Token::String(value))
         } else {
